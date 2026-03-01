@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "novel-assistant": {
+      "command": "python",
+      "args": ["-m", "backend.mcp.server"],
+      "env": {
+        "PYTHONIOENCODING": "utf-8"
+      }
+    }
+  },
+  "experimental": {
+    "skills": true
+  }
+}

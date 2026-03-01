@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+:root {
+  --sidebar-width: 260px;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Markdown content styling */
+.markdown-content h1 { font-size: 1.5rem; font-weight: 700; margin: 1rem 0; }
+.markdown-content h2 { font-size: 1.25rem; font-weight: 600; margin: 0.75rem 0; }
+.markdown-content p { margin: 0.5rem 0; line-height: 1.75; }
+.markdown-content blockquote {
+  border-left: 3px solid #d1d5db;
+  padding-left: 1rem;
+  color: #6b7280;
+  margin: 0.5rem 0;
+}
