@@ -28,6 +28,14 @@ export const proposePatch = (slug: string, data: any) =>
   api.post(`/projects/${slug}/lore/patch/propose`, data).then(r => r.data)
 export const commitPatch = (slug: string, patchId: string) =>
   api.post(`/projects/${slug}/lore/patch/${patchId}/commit`).then(r => r.data)
+export const updateLoreEntry = (
+  slug: string,
+  category: string,
+  name: string,
+  data: { content: string; metadata?: Record<string, any> }
+) => api.put(`/projects/${slug}/lore/${category}/${name}`, data).then(r => r.data)
+export const getIndexFiles = (slug: string) =>
+  api.get(`/projects/${slug}/lore/index`).then(r => r.data)
 
 // Memory
 export const queryMemory = (slug: string, query: string, topK: number = 5) =>

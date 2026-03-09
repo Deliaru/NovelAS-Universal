@@ -74,3 +74,10 @@ class CommitResult(BaseModel):
 
     updated_files: list[str]
     git_sha: str | None = None
+
+
+class LoreUpdateRequest(BaseModel):
+    """Request body for direct lore entry update."""
+
+    content: str
+    metadata: dict[str, Any] | None = None

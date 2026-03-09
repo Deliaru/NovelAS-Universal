@@ -7,10 +7,12 @@ from fastapi import APIRouter, HTTPException
 from backend.core import lore_manager
 from backend.models.lore import (
     CommitResult,
+    LoreEntry,
     LoreEntryDetail,
     LorePatchRequest,
     LoreSearchResult,
     LoreSnapshot,
+    LoreUpdateRequest,
     PatchReview,
 )
 
@@ -75,12 +77,17 @@ async def update_entry(
     slug: str,
     category: str,
     name: str,
-    content: str,
-    metadata: dict | None = None,
+    request: LoreUpdateRequest,
 ):
     """Direct update of a lore entry (for GUI editing)."""
     try:
-        path = lore_manager.update_lore_entry(slug, category, name, content, metadata)
+        path = lore_manager.update_lore_entry(
+            slug,
+            category,
+            name,
+            request.content,
+            request.metadata,
+        )
         return {"status": "ok", "path": path}
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -96,5 +103,14 @@ async def get_entry_history(slug: str, category: str, name: str):
         project_path = get_project_path(slug)
         rel_path = f"lore_database/{category}/{name}.md"
         return get_file_history(project_path, rel_path)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/index", response_model=list[LoreEntry])
+async def get_index_files(slug: str):
+    """Get all files from the lore_database/index directory."""
+    try:
+        return lore_manager.get_index_files(slug)
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))

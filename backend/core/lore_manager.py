@@ -335,3 +335,37 @@ def update_lore_entry(
     commit_changes(project_path, [rel_path], f"Update lore: {category}/{name}")
 
     return rel_path
+
+
+def get_index_files(slug: str) -> list[LoreEntry]:
+    """
+    Get all files from the lore_database/index directory.
+    These are typically index/reference files like character lists, timelines, etc.
+    """
+    lore_dir = _lore_root(slug)
+    index_dir = lore_dir / "index"
+    entries = []
+
+    if not index_dir.exists():
+        return entries
+
+    for md_file in sorted(index_dir.glob("*.md")):
+        try:
+            content = md_file.read_text(encoding="utf-8")
+            parsed = parse_frontmatter(content)
+            name = parsed.metadata.get("name", md_file.stem)
+            summary = parsed.body[:150].replace("\n", " ").strip()
+            entry_id = f"index/{md_file.name}"
+            entries.append(
+                LoreEntry(
+                    id=entry_id,
+                    name=name,
+                    category="index",
+                    summary=summary,
+                    metadata=parsed.metadata,
+                )
+            )
+        except Exception as e:
+            logger.warning(f"Failed to read index file {md_file}: {e}")
+
+    return entries

@@ -29,17 +29,23 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(log_entry, ensure_ascii=False)
 
 
-def setup_logging() -> logging.Logger:
-    """Configure application-wide structured logging."""
+def setup_logging(enable_console: bool = True) -> logging.Logger:
+    """
+    Configure application-wide structured logging.
+
+    Args:
+        enable_console: If False, disable console logging (useful for MCP stdio mode)
+    """
     logger = logging.getLogger("novelas")
     logger.setLevel(getattr(logging, settings.log_level.upper(), logging.INFO))
 
-    # Console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(
-        logging.Formatter("%(asctime)s [%(levelname)s] %(module)s: %(message)s")
-    )
-    logger.addHandler(console_handler)
+    # Console handler (optional)
+    if enable_console:
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(
+            logging.Formatter("%(asctime)s [%(levelname)s] %(module)s: %(message)s")
+        )
+        logger.addHandler(console_handler)
 
     # File handler with rotation
     log_path = settings.app_root / settings.log_file
@@ -55,4 +61,4 @@ def setup_logging() -> logging.Logger:
     return logger
 
 
-logger = setup_logging()
+logger = setup_logging(enable_console=True)  # Default: console enabled

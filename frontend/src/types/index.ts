@@ -70,3 +70,11 @@ export interface LoreSearchResult {
   excerpt: string
   score: number
 }
+
+export interface LoreEntryDetail {
+  id: string
+  name: string
+  category: string
+  metadata: Record<string, any>
+  content: string
+}
