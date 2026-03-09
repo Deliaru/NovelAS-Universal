@@ -17,8 +17,9 @@ frontend/dist/
 .idea/
 
 # Project data (user-managed)
-projects/*/vector_db/
-projects/*/source/
+projects/
+data/
+shared/
 
 # Logs
 *.log
@@ -30,3 +31,25 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Claude Code
+.claude/
+.gemini/
+
+# MCP Config
+.mcp.json
+
+# Test files
+test_*.py
+
+# Build artifacts
+*.tsbuildinfo
+
+# Batch scripts
+*.bat
+
+# Tools
+tools/
+
+# Docs (if user-generated)
+docs/
