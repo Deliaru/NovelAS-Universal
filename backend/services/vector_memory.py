@@ -78,14 +78,59 @@ def _init_chroma_client():
             return None
 
 
+def _download_model_if_needed():
+    """Download model to local data directory if not exists."""
+    from backend.config import settings
+    from pathlib import Path
+    import os
+
+    model_dir = settings.app_root / "data" / "models" / settings.embedding_model
+    model_dir.mkdir(parents=True, exist_ok=True)
+
+    # 检查模型是否已存在
+    if (model_dir / "config.json").exists():
+        logger.info(f"Model already exists at {model_dir}")
+        return model_dir
+
+    logger.info(f"Downloading model {settings.embedding_model} to {model_dir}...")
+
+    try:
+        from huggingface_hub import snapshot_download
+
+        # 临时允许在线下载
+        os.environ.pop('HF_HUB_OFFLINE', None)
+        os.environ.pop('TRANSFORMERS_OFFLINE', None)
+
+        # 使用 huggingface_hub 直接下载整个模型
+        logger.info("Using huggingface_hub.snapshot_download...")
+        snapshot_download(
+            repo_id=f"sentence-transformers/{settings.embedding_model}",
+            local_dir=str(model_dir),
+            local_dir_use_symlinks=False,
+            resume_download=True,
+        )
+
+        logger.info(f"Model downloaded successfully to {model_dir}")
+        return model_dir
+    except Exception as e:
+        logger.error(f"Failed to download model: {e}", exc_info=True)
+        return None
+
+
 def _init_embedding_model():
-    """Initialize embedding model with local cache and retry logic."""
+    """Initialize embedding model with local cache only."""
     try:
         from sentence_transformers import SentenceTransformer
         from backend.config import settings
         import os
 
-        logger.info(f"Loading embedding model: {settings.embedding_model}...")
+        # 确保模型已下载
+        model_dir = _download_model_if_needed()
+        if model_dir is None:
+            logger.error("Failed to prepare model directory")
+            return None
+
+        logger.info(f"Loading embedding model from: {model_dir}...")
 
         # 强制使用本地缓存，禁用在线检查
         os.environ['HF_HUB_OFFLINE'] = '1'
@@ -93,12 +138,12 @@ def _init_embedding_model():
 
         logger.info("Creating SentenceTransformer instance (offline mode)...")
         model = SentenceTransformer(
-            settings.embedding_model,
+            str(model_dir),
             device='cpu',
             trust_remote_code=False  # 安全起见
         )
 
-        logger.info(f"Successfully loaded embedding model: {settings.embedding_model}")
+        logger.info(f"Successfully loaded embedding model from {model_dir}")
         return model
     except Exception as e:
         logger.error(f"Sentence-transformers initialization failed: {e}", exc_info=True)
