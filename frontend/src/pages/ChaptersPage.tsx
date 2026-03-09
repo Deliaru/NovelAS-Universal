@@ -26,7 +26,7 @@ export default function ChaptersPage() {
   })
 
   if (!slug) {
-    return <div className="text-gray-500">Select a project first.</div>
+    return <div style={{ color: 'var(--color-text-secondary)' }}>Select a project first.</div>
   }
 
   // Group chapters by type
@@ -40,18 +40,32 @@ export default function ChaptersPage() {
   return (
     <div className="flex h-full gap-4">
       {/* Left: Chapter list */}
-      <div className="w-72 shrink-0 bg-white rounded-lg border border-gray-200 overflow-auto">
-        <div className="p-3 border-b border-gray-200">
-          <h2 className="font-semibold">Chapters</h2>
+      <div className="w-72 shrink-0 rounded-lg overflow-auto animate-fade-in" style={{
+        backgroundColor: 'var(--color-bg-card)',
+        border: '1px solid var(--color-border)',
+        boxShadow: 'var(--shadow-sm)'
+      }}>
+        <div className="p-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
+          <h2 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Chapters</h2>
           <div className="flex gap-1 mt-2">
             {[1, 2, 3].map((v) => (
               <button
                 key={v}
-                className={`px-2 py-1 text-xs rounded ${
-                  selectedVolume === v
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                className={`px-2 py-1 text-xs rounded transition-all duration-fast`}
+                style={{
+                  backgroundColor: selectedVolume === v ? 'var(--color-accent-primary)' : 'var(--color-bg-tertiary)',
+                  color: selectedVolume === v ? 'var(--color-bg-primary)' : 'var(--color-text-secondary)'
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedVolume !== v) {
+                    e.currentTarget.style.backgroundColor = 'var(--color-bg-hover)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedVolume !== v) {
+                    e.currentTarget.style.backgroundColor = 'var(--color-bg-tertiary)';
+                  }
+                }}
                 onClick={() => setSelectedVolume(v)}
               >
                 Vol.{v}
@@ -63,43 +77,61 @@ export default function ChaptersPage() {
         <div className="p-2">
           {Object.entries(grouped).map(([group, items]) => (
             <div key={group} className="mb-3">
-              <p className="text-xs font-medium text-gray-400 px-2 mb-1">{group}</p>
-              {items.map((ch) => (
-                <button
-                  key={`${ch.type}-${ch.volume}-${ch.number}`}
-                  className={`w-full text-left px-2 py-1.5 rounded text-sm ${
-                    selectedChapter?.type === ch.type &&
-                    selectedChapter?.number === ch.number &&
-                    selectedChapter?.volume === ch.volume
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'hover:bg-gray-50 text-gray-700'
-                  }`}
-                  onClick={() =>
-                    setSelectedChapter({
-                      type: ch.type,
-                      number: ch.number,
-                      volume: ch.volume,
-                    })
-                  }
-                >
-                  <span>{ch.display_name}</span>
-                  <span className="text-xs text-gray-400 ml-2">
-                    {ch.word_count.toLocaleString()}
-                  </span>
-                </button>
-              ))}
+              <p className="text-xs font-medium px-2 mb-1" style={{ color: 'var(--color-text-tertiary)' }}>{group}</p>
+              {items.map((ch) => {
+                const isActive = selectedChapter?.type === ch.type &&
+                  selectedChapter?.number === ch.number &&
+                  selectedChapter?.volume === ch.volume;
+                return (
+                  <button
+                    key={`${ch.type}-${ch.volume}-${ch.number}`}
+                    className={`w-full text-left px-2 py-1.5 rounded text-sm transition-all duration-fast`}
+                    style={{
+                      backgroundColor: isActive ? 'var(--color-accent-light)' : 'transparent',
+                      color: isActive ? 'var(--color-accent-primary)' : 'var(--color-text-primary)',
+                      borderLeft: isActive ? '3px solid var(--color-accent-primary)' : '3px solid transparent'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.backgroundColor = 'var(--color-bg-hover)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }
+                    }}
+                    onClick={() =>
+                      setSelectedChapter({
+                        type: ch.type,
+                        number: ch.number,
+                        volume: ch.volume,
+                      })
+                    }
+                  >
+                    <span>{ch.display_name}</span>
+                    <span className="text-xs ml-2" style={{ color: 'var(--color-text-tertiary)' }}>
+                      {ch.word_count.toLocaleString()}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           ))}
         </div>
       </div>
 
       {/* Right: Content reader */}
-      <div className="flex-1 bg-white rounded-lg border border-gray-200 overflow-auto p-6">
-        {contentLoading && <p className="text-gray-400">Loading...</p>}
+      <div className="flex-1 rounded-lg overflow-auto p-6 animate-fade-in" style={{
+        backgroundColor: 'var(--color-bg-card)',
+        border: '1px solid var(--color-border)',
+        boxShadow: 'var(--shadow-sm)'
+      }}>
+        {contentLoading && <p style={{ color: 'var(--color-text-tertiary)' }}>Loading...</p>}
         {content && (
           <>
-            <h1 className="text-xl font-bold mb-4">{content.display_name}</h1>
-            <p className="text-sm text-gray-500 mb-4">
+            <h1 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>{content.display_name}</h1>
+            <p className="text-sm mb-4" style={{ color: 'var(--color-text-secondary)' }}>
               {content.word_count.toLocaleString()} words
             </p>
             <div className="markdown-content prose max-w-none">
@@ -108,7 +140,7 @@ export default function ChaptersPage() {
           </>
         )}
         {!content && !contentLoading && (
-          <p className="text-gray-400">Select a chapter to read.</p>
+          <p style={{ color: 'var(--color-text-tertiary)' }}>Select a chapter to read.</p>
         )}
       </div>
     </div>

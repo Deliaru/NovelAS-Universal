@@ -26,9 +26,9 @@ export default function DashboardPage() {
 
   if (!slug) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-500">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Welcome to NovelAS Universal</h2>
+      <div className="flex items-center justify-center h-full" style={{ color: 'var(--color-text-secondary)' }}>
+        <div className="text-center animate-fade-in-up">
+          <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>Welcome to NovelAS Universal</h2>
           <p>Select a project from the sidebar to get started.</p>
         </div>
       </div>
@@ -48,7 +48,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+      <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--color-text-primary)' }}>Dashboard</h1>
 
       <div className="grid grid-cols-4 gap-4 mb-8">
         <StatCard label="Total Chapters" value={chapters.length} />
@@ -59,23 +59,31 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-2 gap-6">
         {/* Chapters by type */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <h3 className="font-semibold mb-3">Chapters by Type</h3>
+        <div className="rounded-lg p-4 animate-fade-in" style={{
+          backgroundColor: 'var(--color-bg-card)',
+          border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
+          <h3 className="font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>Chapters by Type</h3>
           {Object.entries(chaptersByType).map(([type, count]) => (
             <div key={type} className="flex justify-between py-1 text-sm">
-              <span className="text-gray-600">{type}</span>
-              <span className="font-medium">{count}</span>
+              <span style={{ color: 'var(--color-text-secondary)' }}>{type}</span>
+              <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{count}</span>
             </div>
           ))}
         </div>
 
         {/* Lore by category */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <h3 className="font-semibold mb-3">Lore by Category</h3>
+        <div className="rounded-lg p-4 animate-fade-in" style={{
+          backgroundColor: 'var(--color-bg-card)',
+          border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
+          <h3 className="font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>Lore by Category</h3>
           {Object.entries(loreCounts).map(([cat, count]) => (
             <div key={cat} className="flex justify-between py-1 text-sm">
-              <span className="text-gray-600">{cat}</span>
-              <span className="font-medium">{count}</span>
+              <span style={{ color: 'var(--color-text-secondary)' }}>{cat}</span>
+              <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{count}</span>
             </div>
           ))}
         </div>
@@ -86,9 +94,13 @@ export default function DashboardPage() {
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-2xl font-bold mt-1">{value}</p>
+    <div className="rounded-lg p-4 transition-all duration-normal hover:scale-105 animate-fade-in" style={{
+      backgroundColor: 'var(--color-bg-card)',
+      border: '1px solid var(--color-border)',
+      boxShadow: 'var(--shadow-sm)'
+    }}>
+      <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{label}</p>
+      <p className="text-2xl font-bold mt-1" style={{ color: 'var(--color-accent-primary)' }}>{value}</p>
     </div>
   )
 }

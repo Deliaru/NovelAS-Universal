@@ -19,17 +19,25 @@ export default function Sidebar() {
   })
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
+    <aside className="w-64 flex flex-col" style={{
+      backgroundColor: 'var(--color-bg-secondary)',
+      borderRight: '1px solid var(--color-border)'
+    }}>
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <h1 className="text-lg font-bold text-gray-900">NovelAS</h1>
-        <p className="text-xs text-gray-500">Universal</p>
+      <div className="p-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <h1 className="text-lg font-bold" style={{ color: 'var(--color-accent-primary)' }}>NovelAS</h1>
+        <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Universal</p>
       </div>
 
       {/* Project selector */}
-      <div className="p-3 border-b border-gray-200">
+      <div className="p-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
         <select
-          className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 bg-white"
+          className="w-full text-sm rounded px-2 py-1.5 transition-all duration-fast"
+          style={{
+            backgroundColor: 'var(--color-bg-tertiary)',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-text-primary)'
+          }}
           value={currentSlug || ''}
           onChange={(e) => setCurrentSlug(e.target.value || null)}
         >
@@ -49,12 +57,30 @@ export default function Sidebar() {
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `block px-3 py-2 rounded text-sm mb-1 ${
+              `block px-3 py-2 rounded text-sm mb-1 transition-all duration-fast ${
                 isActive
-                  ? 'bg-blue-50 text-blue-700 font-medium'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'font-medium'
+                  : ''
               }`
             }
+            style={({ isActive }) => ({
+              backgroundColor: isActive ? 'var(--color-accent-primary)' : 'transparent',
+              color: isActive ? 'var(--color-bg-primary)' : 'var(--color-text-secondary)',
+            })}
+            onMouseEnter={(e) => {
+              const target = e.currentTarget;
+              if (!target.classList.contains('active')) {
+                target.style.backgroundColor = 'var(--color-bg-hover)';
+                target.style.color = 'var(--color-text-primary)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              const target = e.currentTarget;
+              if (!target.classList.contains('active')) {
+                target.style.backgroundColor = 'transparent';
+                target.style.color = 'var(--color-text-secondary)';
+              }
+            }}
           >
             {item.label}
           </NavLink>
@@ -62,7 +88,10 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-3 border-t border-gray-200 text-xs text-gray-400">
+      <div className="p-3 text-xs" style={{
+        borderTop: '1px solid var(--color-border)',
+        color: 'var(--color-text-tertiary)'
+      }}>
         v0.1.0
       </div>
     </aside>
