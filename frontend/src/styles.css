@@ -230,6 +230,36 @@ body {
   color: var(--color-text-primary);
 }
 
+/* 编辑器内容区域 - 确保文本可见 */
+.lore-editor .ProseMirror {
+  color: var(--color-text-primary) !important;
+}
+
+.lore-editor .toastui-editor-md-container .toastui-editor-contents,
+.lore-editor .toastui-editor-ww-container .toastui-editor-contents {
+  color: var(--color-text-primary) !important;
+}
+
+/* Markdown 模式下的文本 */
+.lore-editor .toastui-editor-md-container textarea {
+  color: var(--color-text-primary) !important;
+  background: var(--color-bg-card) !important;
+}
+
+/* WYSIWYG 模式下的文本 */
+.lore-editor .toastui-editor-ww-container .ProseMirror p,
+.lore-editor .toastui-editor-ww-container .ProseMirror h1,
+.lore-editor .toastui-editor-ww-container .ProseMirror h2,
+.lore-editor .toastui-editor-ww-container .ProseMirror h3,
+.lore-editor .toastui-editor-ww-container .ProseMirror h4,
+.lore-editor .toastui-editor-ww-container .ProseMirror h5,
+.lore-editor .toastui-editor-ww-container .ProseMirror h6,
+.lore-editor .toastui-editor-ww-container .ProseMirror li,
+.lore-editor .toastui-editor-ww-container .ProseMirror span,
+.lore-editor .toastui-editor-ww-container .ProseMirror div {
+  color: var(--color-text-primary) !important;
+}
+
 .lore-editor .toastui-editor-popup {
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
@@ -238,10 +268,6 @@ body {
 
 .lore-editor .toastui-editor-popup-body {
   background: var(--color-bg-secondary);
-}
-
-.lore-editor .ProseMirror {
-  color: var(--color-text-primary);
 }
 
 .lore-editor button {

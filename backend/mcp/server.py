@@ -22,6 +22,7 @@ from backend.core import chapter_manager, job_manager, knowledge_manager, lore_m
 from backend.core.naming import ChapterId, ChapterType
 from backend.models.lore import LorePatchRequest, LorePatchUpdate
 from backend.services import vector_memory
+from backend.utils.md_to_docx import convert_md_to_docx, batch_convert_md_to_docx
 
 mcp = FastMCP("NovelAS Universal")
 
@@ -475,6 +476,122 @@ def update_knowledge_file(slug: str, filename: str, content: str, subdir: str = 
         logger.error(f"update_knowledge_file error: {e}", exc_info=True)
         sys.stdout.flush()
         return f"Error: {type(e).__name__}: {e}\n\n🔄 You can retry this call."
+
+
+@mcp.tool()
+@with_tool_timeout(15)
+def convert_markdown_to_docx(
+    md_path: str,
+    docx_path: str = "",
+    title: str = "",
+    font_name: str = "宋体",
+    font_size: int = 12
+) -> str:
+    """
+    Convert a Markdown file to DOCX format.
+
+    Args:
+        md_path: Path to the input Markdown file (required)
+        docx_path: Path to the output DOCX file (optional, defaults to same name with .docx extension)
+        title: Document title (optional, extracted from first # heading if not provided)
+        font_name: Font name for the document (default: 宋体)
+        font_size: Font size in points (default: 12)
+
+    Returns:
+        Path to the created DOCX file
+
+    Timeout: 15 seconds
+    If timeout occurs, retry the same call.
+    """
+    import logging
+    logger = logging.getLogger("novelas")
+
+    try:
+        logger.info(f"Converting MD to DOCX: {md_path}")
+
+        # Handle optional parameters
+        docx_path_arg = docx_path if docx_path else None
+        title_arg = title if title else None
+
+        result_path = convert_md_to_docx(
+            md_path=md_path,
+            docx_path=docx_path_arg,
+            title=title_arg,
+            font_name=font_name,
+            font_size=font_size
+        )
+
+        logger.info(f"DOCX created: {result_path}")
+        sys.stdout.flush()
+        return f"✅ Successfully converted to: {result_path}"
+    except FileNotFoundError as e:
+        logger.error(f"File not found: {e}")
+        sys.stdout.flush()
+        return f"❌ Error: {e}"
+    except Exception as e:
+        logger.error(f"convert_markdown_to_docx error: {e}", exc_info=True)
+        sys.stdout.flush()
+        return f"❌ Error: {type(e).__name__}: {e}\n\n🔄 You can retry this call."
+
+
+@mcp.tool()
+@with_tool_timeout(30)
+def batch_convert_markdown_to_docx(
+    input_dir: str,
+    output_dir: str = "",
+    pattern: str = "*.md",
+    font_name: str = "宋体",
+    font_size: int = 12
+) -> str:
+    """
+    Batch convert all Markdown files in a directory to DOCX.
+
+    Args:
+        input_dir: Directory containing Markdown files (required)
+        output_dir: Output directory (optional, defaults to input_dir)
+        pattern: Glob pattern for matching files (default: *.md)
+        font_name: Font name for the document (default: 宋体)
+        font_size: Font size in points (default: 12)
+
+    Returns:
+        List of created DOCX file paths
+
+    Timeout: 30 seconds
+    If timeout occurs, retry the same call.
+    """
+    import logging
+    logger = logging.getLogger("novelas")
+
+    try:
+        logger.info(f"Batch converting MD to DOCX: {input_dir}, pattern={pattern}")
+
+        # Handle optional parameters
+        output_dir_arg = output_dir if output_dir else None
+
+        created_files = batch_convert_md_to_docx(
+            input_dir=input_dir,
+            output_dir=output_dir_arg,
+            pattern=pattern,
+            font_name=font_name,
+            font_size=font_size
+        )
+
+        logger.info(f"Batch conversion complete: {len(created_files)} files created")
+        sys.stdout.flush()
+
+        result = f"✅ Successfully converted {len(created_files)} files:\n"
+        for file_path in created_files:
+            result += f"  - {file_path}\n"
+
+        return result
+    except FileNotFoundError as e:
+        logger.error(f"Directory not found: {e}")
+        sys.stdout.flush()
+        return f"❌ Error: {e}"
+    except Exception as e:
+        logger.error(f"batch_convert_markdown_to_docx error: {e}", exc_info=True)
+        sys.stdout.flush()
+        return f"❌ Error: {type(e).__name__}: {e}\n\n🔄 You can retry this call."
 
 
 if __name__ == "__main__":

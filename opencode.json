@@ -1,0 +1,13 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "novel-assistant": {
+      "type": "local",
+      "command": ["python", "-m", "backend.mcp.server"],
+      "enabled": true,
+      "environment": {
+        "PYTHONIOENCODING": "utf-8"
+      }
+    }
+  }
+}

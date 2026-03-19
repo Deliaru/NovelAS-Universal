@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = "NovelAS-Universal"
-    app_version: str = "0.1.0"
+    app_version: str = "1.0.0"
     debug: bool = False
 
     # Paths (relative to app root by default)
