@@ -1,28 +1,51 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import ReactMarkdown from 'react-markdown'
+import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useProjectStore } from '../store/projectStore'
-import { listChapters, readChapter } from '../api/client'
+import { listDrafts, readDraft, saveDraft } from '../api/client'
 import type { ChapterListItem, ChapterContent } from '../types'
 
-export default function ChaptersPage() {
+export default function DraftsPage() {
+  const queryClient = useQueryClient()
   const slug = useProjectStore((s) => s.currentSlug)
   const [selectedVolume, setSelectedVolume] = useState<number>(1)
   const [selectedChapter, setSelectedChapter] = useState<{
     type: string; number: number; volume: number
   } | null>(null)
+  
+  const [editContent, setEditContent] = useState<string>('')
 
   const { data: chapters = [] } = useQuery<ChapterListItem[]>({
-    queryKey: ['chapters', slug, selectedVolume],
-    queryFn: () => listChapters(slug!, selectedVolume),
+    queryKey: ['drafts', slug, selectedVolume],
+    queryFn: () => listDrafts(slug!, selectedVolume),
     enabled: !!slug,
   })
 
   const { data: content, isLoading: contentLoading } = useQuery<ChapterContent>({
-    queryKey: ['chapter-content', slug, selectedChapter],
+    queryKey: ['draft-content', slug, selectedChapter],
     queryFn: () =>
-      readChapter(slug!, selectedChapter!.type, selectedChapter!.number, selectedChapter!.volume),
+      readDraft(slug!, selectedChapter!.type, selectedChapter!.number, selectedChapter!.volume),
     enabled: !!slug && !!selectedChapter,
+  })
+
+  useEffect(() => {
+    if (content) {
+      setEditContent(content.content)
+    } else {
+      setEditContent('')
+    }
+  }, [content])
+
+  const saveMutation = useMutation({
+    mutationFn: () => 
+      saveDraft(slug!, selectedChapter!.type, selectedChapter!.number, selectedChapter!.volume, editContent),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['drafts', slug, selectedVolume] })
+      queryClient.invalidateQueries({ queryKey: ['draft-content', slug, selectedChapter] })
+      alert('保存成功！')
+    },
+    onError: (err) => {
+      alert('保存失败: ' + err)
+    }
   })
 
   if (!slug) {
@@ -39,14 +62,14 @@ export default function ChaptersPage() {
 
   return (
     <div className="flex h-full gap-4 animate-fade-in">
-      {/* Left: Chapter list */}
+      {/* Left: Draft list */}
       <div className="w-72 shrink-0 rounded-lg overflow-auto transition-transform duration-300 transform-gpu hover:scale-[1.01]" style={{
         backgroundColor: 'var(--color-bg-card)',
         border: '1px solid var(--color-border)',
         boxShadow: 'var(--shadow-sm)'
       }}>
         <div className="p-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
-          <h2 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>章节</h2>
+          <h2 className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>草稿箱</h2>
           <div className="flex gap-1 mt-2">
             {[1, 2, 3].map((v) => (
               <button
@@ -121,29 +144,61 @@ export default function ChaptersPage() {
         </div>
       </div>
 
-      {/* Right: Content reader */}
-      <div className="flex-1 rounded-lg overflow-auto p-6 transition-all duration-300 animate-slide-up" style={{
+      {/* Right: Content editor */}
+      <div className="flex-1 flex flex-col rounded-lg overflow-hidden transition-all duration-300 animate-slide-up" style={{
         backgroundColor: 'var(--color-bg-card)',
         border: '1px solid var(--color-border)',
         boxShadow: 'var(--shadow-sm)'
       }}>
-        {contentLoading && <p className="animate-pulse" style={{ color: 'var(--color-text-tertiary)' }}>加载中...</p>}
-        {content && (
-          <div className="animate-fade-in">
-            <h1 className="text-xl font-bold mb-4 transition-colors duration-300" style={{ color: 'var(--color-text-primary)' }}>{content.display_name}</h1>
-            <p className="text-sm mb-4" style={{ color: 'var(--color-text-secondary)' }}>
-              {content.word_count.toLocaleString()} 字
-            </p>
-            <div className="markdown-content prose max-w-none">
-              <ReactMarkdown>{content.content}</ReactMarkdown>
+        <div className="p-4 flex justify-between items-center" style={{ borderBottom: '1px solid var(--color-border)' }}>
+          <div>
+            <h1 className="text-xl font-bold transition-colors duration-300" style={{ color: 'var(--color-text-primary)' }}>
+              {content ? content.display_name : '未选择草稿'}
+            </h1>
+            {content && (
+              <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                {content.word_count.toLocaleString()} 字
+              </p>
+            )}
+          </div>
+          {content && (
+            <button
+              onClick={() => saveMutation.mutate()}
+              disabled={saveMutation.isPending}
+              className="px-4 py-2 rounded text-sm font-medium transition-all duration-300 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
+              style={{
+                backgroundColor: 'var(--color-accent-primary)',
+                color: 'var(--color-bg-primary)',
+                opacity: saveMutation.isPending ? 0.7 : 1
+              }}
+            >
+              {saveMutation.isPending ? '保存中...' : '保存修改'}
+            </button>
+          )}
+        </div>
+        
+        <div className="flex-1 p-4 overflow-auto">
+          {contentLoading && <p className="animate-pulse" style={{ color: 'var(--color-text-tertiary)' }}>加载中...</p>}
+          {content && (
+            <textarea
+              className="w-full h-full p-4 rounded outline-none resize-none transition-shadow duration-300 focus:shadow-inner"
+              style={{
+                backgroundColor: 'var(--color-bg-primary)',
+                color: 'var(--color-text-primary)',
+                border: '1px solid var(--color-border)',
+                fontFamily: 'inherit'
+              }}
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              placeholder="在此编辑草稿内容..."
+            />
+          )}
+          {!content && !contentLoading && (
+            <div className="h-full flex items-center justify-center">
+              <p style={{ color: 'var(--color-text-tertiary)' }}>请在左侧选择要编辑的草稿。</p>
             </div>
-          </div>
-        )}
-        {!content && !contentLoading && (
-          <div className="h-full flex items-center justify-center">
-            <p style={{ color: 'var(--color-text-tertiary)' }}>请在左侧选择要阅读的章节。</p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )

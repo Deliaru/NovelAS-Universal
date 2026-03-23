@@ -158,6 +158,73 @@ Key skill files:
 - **Lore Compliance**: Before writing, extract entity names and verify against lore database
 - **Anti-AI Detection**: Polish output must remove AI writing patterns (parallel structures, clichés)
 
+## Agent 行为规范
+
+### 强制规则：默认加载 Skill
+
+**任何与小说创作相关的任务，都必须首先加载 `novel-assistant` skill。**
+
+触发条件（满足任一即必须加载）：
+- 用户提到：写、撰写、起草、编辑、修改、润色、大纲、章纲、细纲
+- 用户提到：角色、人物、设定、势力、世界观、组织
+- 用户提到：轻小说、网文、日轻、日式小说、小说创作
+- 用户提到：剧情、情节、故事、章节、卷
+- 用户提到：去AI味、校对、质检、文风分析
+- 用户提到：记忆、回顾、梗概、时间线、版本对比
+
+**不触发条件**（不需要加载 skill）：
+- 纯软件代码编写、技术文档、commit message
+- 项目架构设计、环境变量配置、CSS/UI 样式调整
+- 数据处理、系统调试、非虚构类写作
+
+### 强制规则：主动调用 MCP 工具
+
+以下场景必须主动调用 MCP 工具，不要等待用户要求：
+
+| 场景 | 必须调用的工具 | 目的 |
+|---|---|---|
+| 开始任何写作任务 | `list_chapters` | 了解项目结构 |
+| 提到任何实体名称 | `search_lore` | 验证设定一致性 |
+| 撰写新章节 | `read_chapter_content`（文风范本） | 校准文风 |
+| 修改设定 | `get_lore_snapshot` + `get_entry_details` | 获取当前设定 |
+| 批量处理 | `calculate_chapter_batches` | 规划任务批次 |
+| 保存草稿 | `save_chapter_draft` | 防止内容丢失 |
+| 查询前情 | `query_plot_memory` | 获取相关情节记忆 |
+
+### 强制规则：任务启动检查清单
+
+每次任务开始时，必须执行以下检查：
+
+1. **检查草稿目录**：`projects/{slug}/drafts/vol{V}/` 是否存在未完成草稿
+2. **加载 Skill**：使用 `skill` 工具加载 `novel-assistant`
+3. **获取项目信息**：调用 `list_chapters` 了解当前进度
+4. **设定预检**：如涉及实体，调用 `search_lore` 验证
+
+### 强制规则：草稿自动保存
+
+**每完成一个场景后，必须立即保存草稿**：
+- 保存位置：`projects/{slug}/drafts/vol{V}/{chapter_type}_vol{V}_ch{N}/`
+- 必须保存：`outline.md`、`concept.md`、`draft.md`
+- 使用 `save_chapter_draft` 或直接文件写入
+
+### 强制规则：Interactive Review
+
+所有内容生成必须遵循：
+1. 生成内容 → 展示给用户
+2. **停止** → 询问反馈
+3. 用户确认后才执行保存
+4. 严禁自动提交
+
+### 违规处理
+
+如果 agent 未加载 skill 就开始创作任务：
+- 用户有权指出并要求重新开始
+- Agent 必须立即加载 skill 并重新执行任务
+
+如果 agent 未调用 MCP 工具就臆造设定：
+- 用户有权指出并要求验证
+- Agent 必须立即调用 `search_lore` 验证所有实体
+
 ## Code Style Guidelines
 
 ### Python (Backend)

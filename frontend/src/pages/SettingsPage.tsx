@@ -47,59 +47,65 @@ export default function SettingsPage() {
   })
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--color-text-primary)' }}>Settings</h1>
+    <div className="max-w-3xl mx-auto animate-fade-in-up">
+      <h1 className="text-3xl font-black mb-8 tracking-tight" style={{ color: 'var(--color-text-primary)' }}>设置</h1>
 
       {/* Current project info */}
       {project && (
-        <section className="rounded-lg p-4 mb-6 animate-fade-in" style={{
+        <section className="rounded-xl p-6 mb-8 transition-all duration-300 transform-gpu hover:scale-[1.01] shadow-sm hover:shadow-md" style={{
           backgroundColor: 'var(--color-bg-card)',
-          border: '1px solid var(--color-border)',
-          boxShadow: 'var(--shadow-sm)'
+          border: '1px solid var(--color-border)'
         }}>
-          <h2 className="font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>Current Project</h2>
-          <div className="text-sm space-y-1">
-            <p><span style={{ color: 'var(--color-text-secondary)' }}>Name:</span> <span style={{ color: 'var(--color-text-primary)' }}>{project.name}</span></p>
-            <p><span style={{ color: 'var(--color-text-secondary)' }}>Slug:</span> <span style={{ color: 'var(--color-text-primary)' }}>{project.slug}</span></p>
-            <p><span style={{ color: 'var(--color-text-secondary)' }}>Volumes:</span> <span style={{ color: 'var(--color-text-primary)' }}>{project.volumes.length}</span></p>
-            <p><span style={{ color: 'var(--color-text-secondary)' }}>Language:</span> <span style={{ color: 'var(--color-text-primary)' }}>{project.settings.language}</span></p>
+          <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+            <span className="w-1.5 h-5 rounded-full" style={{ backgroundColor: 'var(--color-accent-primary)' }}></span>
+            当前项目
+          </h2>
+          <div className="text-sm space-y-3 pl-3">
+            <p className="flex justify-between max-w-sm"><span style={{ color: 'var(--color-text-secondary)' }}>项目名称:</span> <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{project?.name}</span></p>
+            <p className="flex justify-between max-w-sm"><span style={{ color: 'var(--color-text-secondary)' }}>标识 (Slug):</span> <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{project?.slug}</span></p>
+            <p className="flex justify-between max-w-sm"><span style={{ color: 'var(--color-text-secondary)' }}>卷数:</span> <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{project?.volumes?.length}</span></p>
+            <p className="flex justify-between max-w-sm"><span style={{ color: 'var(--color-text-secondary)' }}>默认语言:</span> <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{project?.settings?.language}</span></p>
           </div>
 
-          <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
-            <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--color-text-primary)' }}>DOCX Conversion</h3>
-            <button
-              className="px-3 py-1.5 text-sm rounded transition-all duration-fast hover:scale-105 disabled:opacity-50"
-              style={{
-                backgroundColor: convertMutation.isSuccess ? '#10b981' : 'var(--color-accent-primary)',
-                color: 'var(--color-bg-primary)'
-              }}
-              onClick={() => convertMutation.mutate()}
-              disabled={convertMutation.isPending}
-            >
-              {convertMutation.isPending ? 'Converting...' : 'Convert All DOCX'}
-            </button>
-            {convertMutation.data && (
-              <p className="text-sm mt-2" style={{ color: '#10b981' }}>
-                Converted {convertMutation.data.converted} files
-              </p>
-            )}
+          <div className="mt-6 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--color-text-primary)' }}>DOCX 转换</h3>
+            <div className="flex items-center gap-4">
+              <button
+                className="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 shadow-sm"
+                style={{
+                  backgroundColor: convertMutation.isSuccess ? '#10b981' : 'var(--color-accent-primary)',
+                  color: 'var(--color-bg-primary)'
+                }}
+                onClick={() => convertMutation.mutate()}
+                disabled={convertMutation.isPending}
+              >
+                {convertMutation.isPending ? '转换中...' : '转换所有文档 (DOCX)'}
+              </button>
+              {convertMutation.data && (
+                <p className="text-sm font-medium animate-fade-in" style={{ color: '#10b981' }}>
+                  成功转换 {convertMutation.data.converted} 个文件
+                </p>
+              )}
+            </div>
           </div>
         </section>
       )}
 
       {/* Create new project */}
-      <section className="rounded-lg p-4 animate-fade-in" style={{
+      <section className="rounded-xl p-6 transition-all duration-300 transform-gpu hover:scale-[1.01] shadow-sm hover:shadow-md" style={{
         backgroundColor: 'var(--color-bg-card)',
-        border: '1px solid var(--color-border)',
-        boxShadow: 'var(--shadow-sm)'
+        border: '1px solid var(--color-border)'
       }}>
-        <h2 className="font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>Create New Project</h2>
-        <div className="space-y-3">
+        <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+          <span className="w-1.5 h-5 rounded-full" style={{ backgroundColor: 'var(--color-accent-secondary, #10b981)' }}></span>
+          创建新项目
+        </h2>
+        <div className="space-y-4 max-w-xl">
           <div>
-            <label className="block text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Name</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>项目名称</label>
             <input
               type="text"
-              className="w-full rounded px-3 py-1.5 text-sm transition-all duration-fast"
+              className="w-full rounded-lg px-4 py-2 text-sm transition-all duration-300 outline-none focus:ring-2 shadow-inner"
               style={{
                 backgroundColor: 'var(--color-bg-tertiary)',
                 border: '1px solid var(--color-border)',
@@ -107,14 +113,14 @@ export default function SettingsPage() {
               }}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="My Novel"
+              placeholder="我的小说"
             />
           </div>
           <div>
-            <label className="block text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Slug</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>项目标识 (英文/拼音)</label>
             <input
               type="text"
-              className="w-full rounded px-3 py-1.5 text-sm transition-all duration-fast"
+              className="w-full rounded-lg px-4 py-2 text-sm transition-all duration-300 outline-none focus:ring-2 shadow-inner"
               style={{
                 backgroundColor: 'var(--color-bg-tertiary)',
                 border: '1px solid var(--color-border)',
@@ -126,9 +132,9 @@ export default function SettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Description</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>简介</label>
             <textarea
-              className="w-full rounded px-3 py-1.5 text-sm transition-all duration-fast"
+              className="w-full rounded-lg px-4 py-2 text-sm transition-all duration-300 outline-none focus:ring-2 shadow-inner resize-none"
               style={{
                 backgroundColor: 'var(--color-bg-tertiary)',
                 border: '1px solid var(--color-border)',
@@ -136,11 +142,12 @@ export default function SettingsPage() {
               }}
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
-              rows={2}
+              rows={3}
+              placeholder="一段简短的介绍..."
             />
           </div>
           <button
-            className="px-4 py-2 text-sm rounded transition-all duration-fast hover:scale-105 disabled:opacity-50"
+            className="px-6 py-2.5 mt-2 font-medium text-sm rounded-lg transition-all duration-300 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg disabled:opacity-50 disabled:hover:scale-100 disabled:shadow-sm"
             style={{
               backgroundColor: 'var(--color-accent-primary)',
               color: 'var(--color-bg-primary)'
@@ -148,7 +155,7 @@ export default function SettingsPage() {
             onClick={() => createMutation.mutate()}
             disabled={createMutation.isPending || !newName || !newSlug}
           >
-            {createMutation.isPending ? 'Creating...' : 'Create Project'}
+            {createMutation.isPending ? '创建中...' : '创建新项目'}
           </button>
         </div>
       </section>

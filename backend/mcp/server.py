@@ -310,7 +310,7 @@ def commit_patch(slug: str, confirmation: str) -> str:
 
 @mcp.tool()
 @with_tool_timeout(10)
-def save_chapter_draft(slug: str, volume: int, chapter: int, content: str) -> str:
+def save_chapter_draft(slug: str, volume: int, chapter: int, content: str, chapter_type: str = "Chapter") -> str:
     """
     Save a chapter draft.
 
@@ -321,7 +321,8 @@ def save_chapter_draft(slug: str, volume: int, chapter: int, content: str) -> st
     logger = logging.getLogger("novelas")
 
     try:
-        cid = ChapterId(type=ChapterType.CHAPTER, volume=volume, number=chapter)
+        ct = ChapterType(chapter_type)
+        cid = ChapterId(type=ct, volume=volume, number=chapter)
         logger.info(f"Saving chapter draft: {slug} {cid}")
         path = chapter_manager.save_chapter_draft(slug, cid, content)
         logger.info(f"Chapter draft saved: {path}")

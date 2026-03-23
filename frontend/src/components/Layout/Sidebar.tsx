@@ -5,10 +5,12 @@ import { useProjectStore } from '../../store/projectStore'
 import type { ProjectSummary } from '../../types'
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/chapters', label: 'Chapters' },
-  { to: '/lore', label: 'Lore Database' },
-  { to: '/settings', label: 'Settings' },
+  { to: '/dashboard', label: '工作台' },
+  { to: '/chapters', label: '章节' },
+  { to: '/drafts', label: '草稿箱' },
+  { to: '/lore', label: '设定库' },
+  { to: '/knowledge', label: '大纲库' },
+  { to: '/settings', label: '设置' },
 ]
 
 export default function Sidebar() {
@@ -19,20 +21,24 @@ export default function Sidebar() {
   })
 
   return (
-    <aside className="w-64 flex flex-col" style={{
+    <aside className="w-64 flex flex-col transition-all duration-300" style={{
       backgroundColor: 'var(--color-bg-secondary)',
       borderRight: '1px solid var(--color-border)'
     }}>
       {/* Header */}
-      <div className="p-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
-        <h1 className="text-lg font-bold" style={{ color: 'var(--color-accent-primary)' }}>NovelAS</h1>
-        <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>Universal</p>
+      <div className="p-4 flex items-center gap-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <h1 className="text-xl font-black tracking-tight drop-shadow-sm transition-transform duration-300 hover:scale-105" style={{ color: 'var(--color-accent-primary)' }}>NovelAS</h1>
+        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider" style={{ 
+          backgroundColor: 'var(--color-accent-primary)',
+          color: 'var(--color-bg-primary)'
+        }}>PRO</span>
       </div>
 
       {/* Project selector */}
-      <div className="p-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
+      <div className="p-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <div className="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-tertiary)' }}>选择项目</div>
         <select
-          className="w-full text-sm rounded px-2 py-1.5 transition-all duration-fast"
+          className="w-full text-sm rounded-lg px-3 py-2 transition-all duration-300 transform outline-none focus:ring-2"
           style={{
             backgroundColor: 'var(--color-bg-tertiary)',
             border: '1px solid var(--color-border)',
@@ -41,7 +47,7 @@ export default function Sidebar() {
           value={currentSlug || ''}
           onChange={(e) => setCurrentSlug(e.target.value || null)}
         >
-          <option value="">Select project...</option>
+          <option value="">-- 请选择项目 --</option>
           {projects.map((p) => (
             <option key={p.slug} value={p.slug}>
               {p.name}
@@ -51,13 +57,13 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3">
+      <nav className="flex-1 p-3 space-y-1">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `block px-3 py-2 rounded text-sm mb-1 transition-all duration-fast ${
+              `block px-4 py-2.5 rounded-lg text-sm transition-all duration-300 ${
                 isActive
                   ? 'font-medium'
                   : ''

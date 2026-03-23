@@ -44,6 +44,15 @@ cd ..
 
 ### 启动
 
+**macOS（推荐）**:
+```bash
+# 终端执行
+bash start.sh
+
+# 或双击 start.command（会自动打开 Terminal）
+```
+首次运行会自动创建 Python 虚拟环境并安装所有依赖，耐心等待即可。
+
 **Windows**:
 ```bash
 start.bat

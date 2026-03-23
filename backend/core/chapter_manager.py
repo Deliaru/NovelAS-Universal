@@ -6,7 +6,7 @@ Uses the naming system for standardized file operations.
 import re
 from pathlib import Path
 
-from backend.core.naming import ChapterId, ChapterType, parse_filename, scan_chapters
+from backend.core.naming import ChapterId, ChapterType, parse_filename, scan_chapters, scan_drafts
 from backend.core.project_manager import get_project_path
 from backend.models.chapter import ChapterContent, ChapterListItem, ChapterMetadata
 from backend.utils.logging_config import logger
@@ -48,6 +48,43 @@ def list_chapters(slug: str, volume: int | None = None) -> list[ChapterListItem]
     items = []
     for chapter_id in all_chapters:
         filepath = chapter_id.to_path(root)
+        word_count = 0
+        if filepath.exists():
+            content = filepath.read_text(encoding="utf-8")
+            word_count = _count_words(content)
+
+        items.append(
+            ChapterListItem(
+                type=chapter_id.type,
+                volume=chapter_id.volume,
+                number=chapter_id.number,
+                filename=chapter_id.to_filename(),
+                display_name=chapter_id.display_name(),
+                word_count=word_count,
+            )
+        )
+
+    return items
+
+
+def list_drafts(slug: str, volume: int | None = None) -> list[ChapterListItem]:
+    """
+    List all chapter drafts for a project.
+    Drafts are stored in nested directories: drafts/vol{V}/{Type}_vol{V}_ch{N}/draft.md
+    """
+    root = _drafts_root(slug)
+    all_drafts = scan_drafts(root)
+
+    if volume is not None:
+        all_drafts = [
+            c for c in all_drafts
+            if c.volume == volume or c.type == ChapterType.EXTRA
+        ]
+
+    items = []
+    for chapter_id in all_drafts:
+        draft_dir = chapter_id.to_draft_dir(root)
+        filepath = draft_dir / "draft.md"
         word_count = 0
         if filepath.exists():
             content = filepath.read_text(encoding="utf-8")
@@ -117,6 +154,29 @@ def read_chapter_content(slug: str, chapter_id: ChapterId) -> ChapterContent:
         word_count=_count_words(content),
     )
 
+def read_draft_content(slug: str, chapter_id: ChapterId) -> ChapterContent:
+    """
+    Read the full content of a chapter draft.
+    Drafts are stored in nested directories: drafts/vol{V}/{Type}_vol{V}_ch{N}/draft.md
+    """
+    root = _drafts_root(slug)
+    draft_dir = chapter_id.to_draft_dir(root)
+    filepath = draft_dir / "draft.md"
+
+    if not filepath.exists():
+        raise FileNotFoundError(f"Chapter draft not found: {filepath}")
+
+    content = filepath.read_text(encoding="utf-8")
+    return ChapterContent(
+        type=chapter_id.type,
+        volume=chapter_id.volume,
+        number=chapter_id.number,
+        filename=chapter_id.to_filename(),
+        display_name=chapter_id.display_name(),
+        content=content,
+        word_count=_count_words(content),
+    )
+
 
 def save_chapter_draft(
     slug: str,
@@ -125,23 +185,20 @@ def save_chapter_draft(
 ) -> str:
     """
     Save a chapter draft, backing up any existing file.
+    Drafts are stored in nested directories: drafts/vol{V}/{Type}_vol{V}_ch{N}/draft.md
 
     Returns the path of the saved file.
     """
-    drafts = _drafts_root(slug)
-    if chapter_id.type == ChapterType.EXTRA:
-        draft_dir = drafts / "extras"
-    else:
-        draft_dir = drafts / f"vol{chapter_id.volume}"
+    root = _drafts_root(slug)
+    draft_dir = chapter_id.to_draft_dir(root)
     draft_dir.mkdir(parents=True, exist_ok=True)
 
-    filepath = draft_dir / chapter_id.to_filename()
+    filepath = draft_dir / "draft.md"
 
     # Backup existing file
     if filepath.exists():
-        backup_name = filepath.stem + "_bak" + filepath.suffix
-        backup_path = draft_dir / backup_name
-        filepath.rename(backup_path)
+        backup_path = draft_dir / "draft_bak.md"
+        filepath.replace(backup_path)
         logger.info(f"Backed up existing draft to {backup_path}")
 
     filepath.write_text(content, encoding="utf-8")

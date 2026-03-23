@@ -3,22 +3,25 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Editor from '@toast-ui/editor'
 import '@toast-ui/editor/dist/toastui-editor.css'
 import { useProjectStore } from '../store/projectStore'
-import { getLoreSnapshot, getLoreDetails, searchLore, updateLoreEntry, getIndexFiles } from '../api/client'
-import type { LoreEntry, LoreEntryDetail, LoreSearchResult, LoreSnapshot } from '../types'
+import { listProjectKnowledge, readKnowledge, updateKnowledge } from '../api/client'
 
-const CATEGORIES = ['characters', 'factions', 'worldview', 'items', 'index']
 const AUTO_SAVE_DELAY_MS = 800
 
 type SaveState = 'idle' | 'unsaved' | 'saving' | 'saved' | 'error'
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-export default function LorePage() {
+interface KnowledgeFile {
+  path: string
+  name: string
+  size: number
+}
+
+export default function KnowledgePage() {
   const slug = useProjectStore((s) => s.currentSlug)
   const queryClient = useQueryClient()
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [selectedEntry, setSelectedEntry] = useState<string | null>(null)
   const [searchKeyword, setSearchKeyword] = useState('')
+  const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const [draftContent, setDraftContent] = useState('')
   const [lastSavedContent, setLastSavedContent] = useState('')
   const [saveState, setSaveState] = useState<SaveState>('idle')
@@ -31,63 +34,27 @@ export default function LorePage() {
   const editorContainerRef = useRef<HTMLDivElement | null>(null)
   const editorRef = useRef<Editor | null>(null)
 
-  const { data: snapshot } = useQuery<LoreSnapshot>({
-    queryKey: ['lore-snapshot', slug],
-    queryFn: () => getLoreSnapshot(slug!),
+  const { data: knowledgeFiles } = useQuery<KnowledgeFile[]>({
+    queryKey: ['knowledge-list', slug],
+    queryFn: () => listProjectKnowledge(slug!),
     enabled: !!slug,
   })
 
-  const { data: indexFiles } = useQuery<LoreEntry[]>({
-    queryKey: ['lore-index', slug],
-    queryFn: () => getIndexFiles(slug!),
-    enabled: !!slug,
-  })
-
-  const { data: entryDetails } = useQuery<LoreEntryDetail[]>({
-    queryKey: ['lore-detail', slug, selectedEntry],
-    queryFn: () => getLoreDetails(slug!, [selectedEntry!]),
-    enabled: !!slug && !!selectedEntry,
-  })
-
-  const { data: searchResults } = useQuery<LoreSearchResult[]>({
-    queryKey: ['lore-search', slug, searchKeyword],
-    queryFn: () => searchLore(slug!, searchKeyword),
-    enabled: !!slug && searchKeyword.length > 1,
+  const { data: fileDetail } = useQuery<{ path: string; content: string }>({
+    queryKey: ['knowledge-detail', slug, selectedPath],
+    queryFn: () => readKnowledge(selectedPath!, slug!),
+    enabled: !!slug && !!selectedPath,
   })
 
   const saveMutation = useMutation({
-    mutationFn: (payload: {
-      slug: string
-      category: string
-      name: string
-      content: string
-      metadata?: Record<string, any>
-    }) =>
-      updateLoreEntry(payload.slug, payload.category, payload.name, {
-        content: payload.content,
-        metadata: payload.metadata,
-      }),
+    mutationFn: (payload: { slug: string; path: string; content: string }) =>
+      updateKnowledge(payload.path, payload.content, payload.slug),
   })
 
-  if (!slug) {
-    return <div style={{ color: 'var(--color-text-secondary)' }}>Select a project first.</div>
-  }
-
-  const entries = snapshot?.entries || []
-  const indexEntries = indexFiles || []
-  const allEntries = [...entries, ...indexEntries]
-
-  const filtered = selectedCategory
-    ? allEntries.filter((e) => e.category === selectedCategory)
-    : allEntries
-
-  const detail = entryDetails?.[0]
-  const displayEntries: Array<LoreEntry | LoreSearchResult> =
-    searchKeyword.length > 1 ? searchResults || [] : filtered
-
+  // Basic cleanup and save functionality exactly alike LorePage
   const saveNow = useCallback(
     async (content: string): Promise<boolean> => {
-      if (!slug || !detail) {
+      if (!slug || !selectedPath) {
         return true
       }
 
@@ -103,35 +70,17 @@ export default function LorePage() {
       try {
         await saveMutation.mutateAsync({
           slug,
-          category: detail.category,
-          name: detail.name,
+          path: selectedPath,
           content,
-          metadata: detail.metadata,
         })
 
         lastSavedRef.current = content
         setLastSavedContent(content)
         setSaveState('saved')
 
-        queryClient.setQueryData<LoreEntryDetail[]>(['lore-detail', slug, selectedEntry], (old) => {
-          if (!old || old.length === 0) {
-            return old
-          }
-          return [{ ...old[0], content }]
-        })
-
-        queryClient.setQueryData<LoreSnapshot>(['lore-snapshot', slug], (old) => {
-          if (!old) {
-            return old
-          }
-          return {
-            ...old,
-            entries: old.entries.map((entry) =>
-              entry.id === detail.id
-                ? { ...entry, summary: content.replace(/\n/g, ' ').trim().slice(0, 150) }
-                : entry
-            ),
-          }
+        queryClient.setQueryData<{ path: string; content: string }>(['knowledge-detail', slug, selectedPath], (old) => {
+          if (!old) return old
+          return { ...old, content }
         })
 
         return true
@@ -149,7 +98,7 @@ export default function LorePage() {
         }
       }
     },
-    [detail, queryClient, saveMutation, selectedEntry, slug]
+    [selectedPath, queryClient, saveMutation, slug]
   )
 
   const flushPendingSave = useCallback(async (): Promise<boolean> => {
@@ -171,9 +120,8 @@ export default function LorePage() {
     return saveNow(draftRef.current)
   }, [saveNow])
 
-
   useEffect(() => {
-    if (!detail) {
+    if (!fileDetail) {
       setDraftContent('')
       draftRef.current = ''
       setLastSavedContent('')
@@ -183,26 +131,26 @@ export default function LorePage() {
       return
     }
 
-    setDraftContent(detail.content)
-    draftRef.current = detail.content
-    setLastSavedContent(detail.content)
-    lastSavedRef.current = detail.content
+    setDraftContent(fileDetail.content)
+    draftRef.current = fileDetail.content
+    setLastSavedContent(fileDetail.content)
+    lastSavedRef.current = fileDetail.content
     setSaveState('idle')
     setSaveError(null)
     queuedSaveRef.current = null
-  }, [detail])
+  }, [fileDetail])
 
   useEffect(() => {
-    if (!detail || !editorContainerRef.current) {
+    if (!fileDetail || !editorContainerRef.current) {
       return
     }
 
     editorRef.current?.destroy()
     editorRef.current = new Editor({
       el: editorContainerRef.current,
-      height: '560px',
+      height: '100%',
       initialEditType: 'wysiwyg',
-      initialValue: detail.content,
+      initialValue: fileDetail.content,
       autofocus: false,
       usageStatistics: false,
       events: {
@@ -221,10 +169,10 @@ export default function LorePage() {
       editorRef.current?.destroy()
       editorRef.current = null
     }
-  }, [detail])
+  }, [fileDetail])
 
   useEffect(() => {
-    if (!detail || draftContent === lastSavedContent) {
+    if (!fileDetail || draftContent === lastSavedContent) {
       return
     }
 
@@ -234,7 +182,7 @@ export default function LorePage() {
     }, AUTO_SAVE_DELAY_MS)
 
     return () => window.clearTimeout(timer)
-  }, [detail, draftContent, lastSavedContent, saveNow])
+  }, [fileDetail, draftContent, lastSavedContent, saveNow])
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -243,22 +191,14 @@ export default function LorePage() {
         return
       }
       event.preventDefault()
-      event.returnValue = ''
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [])
 
-  const translateCategory = (cat: string) => {
-    const map: Record<string, string> = {
-      'characters': '角色',
-      'factions': '势力',
-      'worldview': '世界观',
-      'items': '物品',
-      'index': '索引'
-    }
-    return map[cat.toLowerCase()] || cat
+  if (!slug) {
+    return <div style={{ color: 'var(--color-text-secondary)' }}>请先在工作台选择一个项目。</div>
   }
 
   const saveStatusText: Record<SaveState, string> = {
@@ -277,9 +217,14 @@ export default function LorePage() {
     error: { backgroundColor: '#fee2e2', color: '#991b1b' },
   }
 
+  const files = knowledgeFiles || []
+  const displayFiles = searchKeyword
+    ? files.filter(f => f.name.toLowerCase().includes(searchKeyword.toLowerCase()) || f.path.toLowerCase().includes(searchKeyword.toLowerCase()))
+    : files
+
   return (
     <div className="flex h-full gap-4 animate-fade-in">
-      {/* Left: Entry list */}
+      {/* Left: Files list */}
       <div className="w-80 shrink-0 rounded-xl overflow-auto transition-transform duration-300 transform-gpu hover:scale-[1.01] shadow-sm flex flex-col" style={{
         backgroundColor: 'var(--color-bg-card)',
         border: '1px solid var(--color-border)'
@@ -287,11 +232,11 @@ export default function LorePage() {
         <div className="p-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
           <h2 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
             <span className="w-1.5 h-5 rounded-full" style={{ backgroundColor: 'var(--color-accent-primary)' }}></span>
-            设定库
+            大纲库 (Knowledge)
           </h2>
           <input
             type="text"
-            placeholder="搜索条目..."
+            placeholder="搜索文件..."
             className="w-full text-sm rounded-lg px-3 py-2 transition-all duration-300 outline-none focus:ring-2 shadow-inner"
             style={{
               backgroundColor: 'var(--color-bg-tertiary)',
@@ -301,42 +246,17 @@ export default function LorePage() {
             value={searchKeyword}
             onChange={(e) => setSearchKeyword(e.target.value)}
           />
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            <button
-              className="px-2.5 py-1 text-xs font-medium rounded-md transition-all duration-300"
-              style={{
-                backgroundColor: !selectedCategory ? 'var(--color-accent-primary)' : 'var(--color-bg-tertiary)',
-                color: !selectedCategory ? 'var(--color-bg-primary)' : 'var(--color-text-secondary)'
-              }}
-              onClick={() => setSelectedCategory(null)}
-            >
-              全部
-            </button>
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                className="px-2.5 py-1 text-xs font-medium rounded-md transition-all duration-300"
-                style={{
-                  backgroundColor: selectedCategory === cat ? 'var(--color-accent-primary)' : 'var(--color-bg-tertiary)',
-                  color: selectedCategory === cat ? 'var(--color-bg-primary)' : 'var(--color-text-secondary)'
-                }}
-                onClick={() => setSelectedCategory(cat)}
-              >
-                {translateCategory(cat)}
-              </button>
-            ))}
-          </div>
         </div>
 
         <div className="p-2 flex-1 overflow-auto">
-          {displayEntries.length === 0 && (
-            <div className="text-center py-6 text-sm" style={{ color: 'var(--color-text-tertiary)' }}>无条目</div>
+          {displayFiles.length === 0 && (
+            <div className="text-center py-6 text-sm" style={{ color: 'var(--color-text-tertiary)' }}>无大纲文件</div>
           )}
-          {displayEntries.map((entry) => {
-            const isActive = selectedEntry === entry.id;
+          {displayFiles.map((file) => {
+            const isActive = selectedPath === file.path;
             return (
               <button
-                key={entry.id}
+                key={file.path}
                 className="w-full text-left px-3 py-2.5 rounded-lg text-sm mb-1.5 transition-all duration-300 border-l-4"
                 style={{
                   backgroundColor: isActive ? 'var(--color-accent-light)' : 'transparent',
@@ -360,13 +280,12 @@ export default function LorePage() {
                       return
                     }
                   }
-                  setSelectedEntry(entry.id)
+                  setSelectedPath(file.path)
                 }}
               >
-                <div className="font-bold">{entry.name}</div>
+                <div className="font-bold">{file.name}</div>
                 <div className="text-xs pt-1 opacity-80" style={{ color: 'var(--color-text-secondary)' }}>
-                  {translateCategory(entry.category)}
-                  {'summary' in entry && entry.summary && ` • ${entry.summary.slice(0, 40)}...`}
+                  {file.path} ({Math.round(file.size / 1024)} KB)
                 </div>
               </button>
             );
@@ -374,52 +293,29 @@ export default function LorePage() {
         </div>
       </div>
 
-      {/* Right: Entry detail */}
+      {/* Right: File detail */}
       <div className="flex-1 flex flex-col rounded-xl overflow-hidden transition-all duration-300 animate-slide-up shadow-sm" style={{
         backgroundColor: 'var(--color-bg-card)',
         border: '1px solid var(--color-border)'
       }}>
-        {detail ? (
+        {fileDetail ? (
           <>
             <div className="p-5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--color-border)' }}>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-black" style={{ color: 'var(--color-text-primary)' }}>{detail.name}</h1>
-                <span className="text-xs font-bold px-2 py-1 rounded" style={{
-                  backgroundColor: 'var(--color-bg-tertiary)',
-                  color: 'var(--color-text-secondary)'
-                }}>
-                  {translateCategory(detail.category)}
-                </span>
+                <h1 className="text-2xl font-black" style={{ color: 'var(--color-text-primary)' }}>{fileDetail.path}</h1>
                 <span className="text-xs font-bold px-2.5 py-1 rounded-full transition-all duration-300" style={saveStatusStyle[saveState]}>
                   {saveStatusText[saveState]}
                 </span>
               </div>
             </div>
             
-            <div className="p-5 flex-1 overflow-auto">
+            <div className="p-5 flex-1 flex flex-col overflow-auto">
               {saveError && <p className="text-sm mb-4 px-4 py-2 rounded font-medium" style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}>{saveError}</p>}
-              
-              {detail.metadata && Object.keys(detail.metadata).length > 0 && (
-                <div className="rounded-lg p-4 mb-5 text-sm shadow-inner" style={{
-                  backgroundColor: 'var(--color-bg-tertiary)',
-                  border: '1px solid var(--color-border)'
-                }}>
-                  <h3 className="font-bold mb-2 pb-2" style={{ color: 'var(--color-text-primary)', borderBottom: '1px solid var(--color-border)' }}>元数据</h3>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                    {Object.entries(detail.metadata).map(([k, v]) => (
-                      <div key={k} className="flex gap-2 items-start">
-                        <span className="min-w-[80px] font-medium" style={{ color: 'var(--color-text-secondary)' }}>{k}:</span>
-                        <span style={{ color: 'var(--color-text-primary)', wordBreak: 'break-word' }}>{String(v)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
-              <section className="flex flex-col h-full min-h-[500px]">
+              <section className="flex flex-col flex-1 h-full min-h-[500px]">
                 <h2 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
                   <span className="w-1.5 h-4 rounded-full" style={{ backgroundColor: 'var(--color-accent-primary)' }}></span>
-                  内容编辑 (自动保存)
+                  大纲编辑 (自动保存)
                 </h2>
                 <div className="flex-1 rounded-lg overflow-hidden shadow-sm hover:shadow transition-shadow duration-300" style={{ border: '1px solid var(--color-border)' }}>
                   <div ref={editorContainerRef} className="lore-editor h-full" />
@@ -429,7 +325,7 @@ export default function LorePage() {
           </>
         ) : (
           <div className="flex items-center justify-center h-full">
-            <p className="opacity-70" style={{ color: 'var(--color-text-tertiary)' }}>请在左侧选择一个条目以查看详情和编辑。</p>
+            <p className="opacity-70" style={{ color: 'var(--color-text-tertiary)' }}>请在左侧选择一个大纲文件以查看和编辑。</p>
           </div>
         )}
       </div>

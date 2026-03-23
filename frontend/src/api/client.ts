@@ -17,6 +17,14 @@ export const listChapters = (slug: string, volume?: number) =>
 export const readChapter = (slug: string, type: string, number: number, volume: number) =>
   api.get(`/projects/${slug}/chapters/${type}/${number}`, { params: { volume } }).then(r => r.data)
 
+// Drafts
+export const listDrafts = (slug: string, volume?: number) =>
+  api.get(`/projects/${slug}/chapters/drafts`, { params: { volume } }).then(r => r.data)
+export const readDraft = (slug: string, type: string, number: number, volume: number) =>
+  api.get(`/projects/${slug}/chapters/drafts/${type}/${number}`, { params: { volume } }).then(r => r.data)
+export const saveDraft = (slug: string, type: string, number: number, volume: number, content: string) =>
+  api.post(`/projects/${slug}/chapters/${type}/${number}/draft`, { content }, { params: { volume } }).then(r => r.data)
+
 // Lore
 export const getLoreSnapshot = (slug: string) =>
   api.get(`/projects/${slug}/lore/snapshot`).then(r => r.data)
@@ -46,5 +54,13 @@ export const getMemoryCount = (slug: string) =>
 // Converter
 export const convertDocx = (slug: string, volumeDir?: string) =>
   api.post(`/projects/${slug}/convert`, { volume_dir: volumeDir }).then(r => r.data)
+
+// Knowledge
+export const listProjectKnowledge = (slug: string) =>
+  api.get(`/projects/${slug}/knowledge`).then(r => r.data)
+export const readKnowledge = (path: string, slug?: string) =>
+  api.get(`/knowledge/${encodeURIComponent(path)}`, { params: { slug } }).then(r => r.data)
+export const updateKnowledge = (path: string, content: string, slug?: string) =>
+  api.put(`/knowledge/${encodeURIComponent(path)}`, { content }, { params: { slug } }).then(r => r.data)
 
 export default api

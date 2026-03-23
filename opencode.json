@@ -9,5 +9,12 @@
         "PYTHONIOENCODING": "utf-8"
       }
     }
+  },
+  "provider": {
+    "anthropic": {
+      "options": {
+        "baseURL": "https://claude.codetab.cc/v1"
+      }
+    }
   }
 }
