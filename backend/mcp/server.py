@@ -335,103 +335,17 @@ def save_chapter_draft(slug: str, volume: int, chapter: int, content: str, chapt
 
 
 @mcp.tool()
-@with_tool_timeout(45)
-def query_plot_memory(slug: str, query: str, n_results: int = 5) -> str:
-    """
-    Query the vector memory database for similar plot points.
-
-    Timeout: 45 seconds (longer due to model loading on first call)
-    If timeout occurs on first call, retry - model will be cached.
-    """
-    import logging
-    logger = logging.getLogger("novelas")
-
-    try:
-        logger.info(f"Querying plot memory: {slug}, query={query[:50]}..., n_results={n_results}")
-        results = vector_memory.query_memory(slug, query, top_k=n_results)
-        logger.info(f"Plot memory query completed: {len(results)} results")
-        sys.stdout.flush()
-        return json.dumps(results, ensure_ascii=False, indent=2)
-    except TimeoutError as e:
-        logger.error(f"query_plot_memory timeout: {e}")
-        sys.stdout.flush()
-        return json.dumps({
-            "error": "timeout",
-            "message": str(e),
-            "hint": "🔄 RETRY THIS CALL - Vector memory service may be initializing (first call takes ~20s, subsequent calls <1s)"
-        }, ensure_ascii=False)
-    except Exception as e:
-        logger.error(f"query_plot_memory error: {e}", exc_info=True)
-        sys.stdout.flush()
-        return json.dumps({
-            "error": type(e).__name__,
-            "message": str(e),
-            "hint": "🔄 You can retry this call"
-        }, ensure_ascii=False)
-
-
-@mcp.tool()
-@with_tool_timeout(90)
-def store_plot_memory(slug: str, content: str, metadata_json: str) -> str:
-    """
-    Store a plot memory entry. metadata_json should include volume, chapter, type.
-
-    Timeout: 90 seconds (longer due to model loading on first call)
-    If timeout occurs on first call, retry - model will be cached.
-    """
-    import logging
-    logger = logging.getLogger("novelas")
-
-    try:
-        metadata = json.loads(metadata_json)
-        logger.info(f"Storing plot memory: {slug}, content_length={len(content)}")
-        memory_id = vector_memory.store_memory(slug, content, metadata)
-        logger.info(f"Plot memory stored: {memory_id}")
-        sys.stdout.flush()
-        return f"Stored: {memory_id}"
-    except Exception as e:
-        logger.error(f"store_plot_memory error: {e}", exc_info=True)
-        sys.stdout.flush()
-        return f"Error: {type(e).__name__}: {e}\n\n🔄 RETRY if this was the first call (model loading)"
-
-
-@mcp.tool()
-@with_tool_timeout(15)
-def calculate_chapter_batches(
-    slug: str, volume: int, max_chars: int = 50000,
-    start_chapter: int = -1, end_chapter: int = -1
+@with_tool_timeout(10)
+def save_chapter_workspace_file(
+    slug: str,
+    volume: int,
+    chapter: int,
+    file_key: str,
+    content: str,
+    chapter_type: str = "Chapter",
 ) -> str:
     """
-    Calculate chapter batches for a volume.
-
-    Timeout: 15 seconds
-    If timeout occurs, retry the same call.
-    """
-    import logging
-    logger = logging.getLogger("novelas")
-
-    try:
-        start = start_chapter if start_chapter >= 0 else None
-        end = end_chapter if end_chapter >= 0 else None
-        logger.info(f"Calculating batches: {slug}, vol={volume}, max_chars={max_chars}")
-        result = job_manager.calculate_batches(slug, volume, max_chars, start, end)
-        logger.info(f"Batches calculated: {len(result.batches)} batches")
-        sys.stdout.flush()
-        return json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
-    except Exception as e:
-        logger.error(f"calculate_chapter_batches error: {e}", exc_info=True)
-        sys.stdout.flush()
-        return json.dumps({
-            "error": str(e),
-            "hint": "🔄 Retry this call if it failed due to timeout"
-        }, ensure_ascii=False)
-
-
-@mcp.tool()
-@with_tool_timeout(10)
-def claim_next_batch(job_id: str) -> str:
-    """
-    Claim the next batch in a job.
+    Save a chapter workspace file (outline/concept/draft).
 
     Timeout: 10 seconds
     If timeout occurs, retry the same call.
@@ -440,225 +354,33 @@ def claim_next_batch(job_id: str) -> str:
     logger = logging.getLogger("novelas")
 
     try:
-        logger.info(f"Claiming next batch: job_id={job_id}")
-        result = job_manager.claim_next_batch(job_id)
-        logger.info(f"Batch claimed successfully")
+        if file_key not in {"outline", "concept", "draft"}:
+            return f"Error: Unsupported workspace file: {file_key}"
+
+        ct = ChapterType(chapter_type)
+        cid = ChapterId(type=ct, volume=volume, number=chapter)
+        logger.info(f"Saving chapter workspace file: {slug} {cid} {file_key}")
+        path = chapter_manager.save_chapter_workspace_file(slug, cid, file_key, content)
+        logger.info(f"Chapter workspace file saved: {path}")
         sys.stdout.flush()
-        return json.dumps(result.model_dump(), ensure_ascii=False)
+        return f"Saved: {path}"
     except Exception as e:
-        logger.error(f"claim_next_batch error: {e}", exc_info=True)
+        logger.error(f"save_chapter_workspace_file error: {e}", exc_info=True)
         sys.stdout.flush()
-        return json.dumps({
-            "error": str(e),
-            "hint": "🔄 Retry this call if it failed due to timeout"
-        }, ensure_ascii=False)
-
-
-@mcp.tool()
-@with_tool_timeout(10)
-def update_knowledge_file(slug: str, filename: str, content: str, subdir: str = "") -> str:
-    """
-    Update or create a knowledge file.
-
-    Timeout: 10 seconds
-    If timeout occurs, retry the same call.
-    """
-    import logging
-    logger = logging.getLogger("novelas")
-
-    try:
-        path = f"{subdir}/{filename}" if subdir else filename
-        logger.info(f"Updating knowledge file: {slug}, path={path}")
-        filepath = knowledge_manager.update_knowledge_file(path, content, slug=slug)
-        logger.info(f"Knowledge file updated: {filepath}")
-        sys.stdout.flush()
-        return f"Saved: {filepath}"
-    except Exception as e:
-        logger.error(f"update_knowledge_file error: {e}", exc_info=True)
-        sys.stdout.flush()
-        return f"Error: {type(e).__name__}: {e}\n\n🔄 You can retry this call."
-
-
-@mcp.tool()
-@with_tool_timeout(15)
-def convert_markdown_to_docx(
-    md_path: str,
-    docx_path: str = "",
-    title: str = "",
-    font_name: str = "宋体",
-    font_size: int = 12
-) -> str:
-    """
-    Convert a Markdown file to DOCX format.
-
-    Args:
-        md_path: Path to the input Markdown file (required)
-        docx_path: Path to the output DOCX file (optional, defaults to same name with .docx extension)
-        title: Document title (optional, extracted from first # heading if not provided)
-        font_name: Font name for the document (default: 宋体)
-        font_size: Font size in points (default: 12)
-
-    Returns:
-        Path to the created DOCX file
-
-    Timeout: 15 seconds
-    If timeout occurs, retry the same call.
-    """
-    import logging
-    logger = logging.getLogger("novelas")
-
-    try:
-        logger.info(f"Converting MD to DOCX: {md_path}")
-
-        # Handle optional parameters
-        docx_path_arg = docx_path if docx_path else None
-        title_arg = title if title else None
-
-        result_path = convert_md_to_docx(
-            md_path=md_path,
-            docx_path=docx_path_arg,
-            title=title_arg,
-            font_name=font_name,
-            font_size=font_size
-        )
-
-        logger.info(f"DOCX created: {result_path}")
-        sys.stdout.flush()
-        return f"✅ Successfully converted to: {result_path}"
-    except FileNotFoundError as e:
-        logger.error(f"File not found: {e}")
-        sys.stdout.flush()
-        return f"❌ Error: {e}"
-    except Exception as e:
-        logger.error(f"convert_markdown_to_docx error: {e}", exc_info=True)
-        sys.stdout.flush()
-        return f"❌ Error: {type(e).__name__}: {e}\n\n🔄 You can retry this call."
-
-
-@mcp.tool()
-@with_tool_timeout(30)
-def batch_convert_markdown_to_docx(
-    input_dir: str,
-    output_dir: str = "",
-    pattern: str = "*.md",
-    font_name: str = "宋体",
-    font_size: int = 12
-) -> str:
-    """
-    Batch convert all Markdown files in a directory to DOCX.
-
-    Args:
-        input_dir: Directory containing Markdown files (required)
-        output_dir: Output directory (optional, defaults to input_dir)
-        pattern: Glob pattern for matching files (default: *.md)
-        font_name: Font name for the document (default: 宋体)
-        font_size: Font size in points (default: 12)
-
-    Returns:
-        List of created DOCX file paths
-
-    Timeout: 30 seconds
-    If timeout occurs, retry the same call.
-    """
-    import logging
-    logger = logging.getLogger("novelas")
-
-    try:
-        logger.info(f"Batch converting MD to DOCX: {input_dir}, pattern={pattern}")
-
-        # Handle optional parameters
-        output_dir_arg = output_dir if output_dir else None
-
-        created_files = batch_convert_md_to_docx(
-            input_dir=input_dir,
-            output_dir=output_dir_arg,
-            pattern=pattern,
-            font_name=font_name,
-            font_size=font_size
-        )
-
-        logger.info(f"Batch conversion complete: {len(created_files)} files created")
-        sys.stdout.flush()
-
-        result = f"✅ Successfully converted {len(created_files)} files:\n"
-        for file_path in created_files:
-            result += f"  - {file_path}\n"
-
-        return result
-    except FileNotFoundError as e:
-        logger.error(f"Directory not found: {e}")
-        sys.stdout.flush()
-        return f"❌ Error: {e}"
-    except Exception as e:
-        logger.error(f"batch_convert_markdown_to_docx error: {e}", exc_info=True)
-        sys.stdout.flush()
-        return f"❌ Error: {type(e).__name__}: {e}\n\n🔄 You can retry this call."
+        return f"Error saving workspace file: {type(e).__name__}: {e}\n\n🔄 You can retry this call."
 
 
 if __name__ == "__main__":
-    import sys
-    import os
-
-    # Disable console logging in MCP mode to avoid interfering with stdio
-    os.environ["NOVELAS_DISABLE_CONSOLE_LOG"] = "1"
-
-    # Reconfigure logging for MCP mode (file only)
-    import logging
+    # Configure logging for MCP stdio mode (disable console to avoid polluting stdout)
     from backend.utils.logging_config import setup_logging
-
-    # Clear existing handlers and setup file-only logging
-    logger = logging.getLogger("novelas")
-    logger.handlers.clear()
     logger = setup_logging(enable_console=False)
-
-    logger.info("=" * 60)
-    logger.info(f"Starting NovelAS MCP Server (PID: {os.getpid()})")
-    logger.info("=" * 60)
-
-    # Set unbuffered mode for stdio
-    sys.stdout.reconfigure(line_buffering=True)
-    sys.stderr.reconfigure(line_buffering=True)
-
-    # Warmup services synchronously with timeout
-    logger.info("Pre-loading vector memory service...")
+    logger.info("Starting MCP server...")
+    
+    # Warm up services in background
     try:
-        import signal
-
-        def timeout_handler(signum, frame):
-            raise TimeoutError("Warmup timeout")
-
-        # Windows doesn't support SIGALRM, use threading instead
-        warmup_result = [False]
-        warmup_error = [None]
-
-        def warmup_with_catch():
-            try:
-                _warmup_services()
-                warmup_result[0] = True
-            except Exception as e:
-                warmup_error[0] = e
-
-        warmup_thread = threading.Thread(target=warmup_with_catch, daemon=False)
-        warmup_thread.start()
-        warmup_thread.join(timeout=30)  # 30秒超时
-
-        if warmup_thread.is_alive():
-            logger.warning("Warmup timed out after 30s, continuing anyway...")
-        elif warmup_error[0]:
-            logger.warning(f"Warmup failed: {warmup_error[0]}")
-        elif warmup_result[0]:
-            logger.info("Warmup completed successfully")
-    except Exception as e:
-        logger.warning(f"Warmup error: {e}")
-
-    try:
-        logger.info("MCP Server entering main loop...")
-        mcp.run()
-    except KeyboardInterrupt:
-        logger.info("MCP Server stopped by user")
-        sys.exit(0)
-    except Exception as e:
-        logger.error(f"MCP Server error: {e}", exc_info=True)
-        sys.exit(1)
-    finally:
-        logger.info("MCP Server shutdown complete")
+        _warmup_services()
+    except Exception:
+        pass
+    
+    # Run the MCP server
+    mcp.run()

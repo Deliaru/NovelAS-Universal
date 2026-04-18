@@ -71,6 +71,26 @@ export default function ChaptersPage() {
                 卷 {v}
               </button>
             ))}
+            <button
+              className={`px-2 py-1 text-xs rounded transition-all duration-300`}
+              style={{
+                backgroundColor: selectedVolume === 0 ? 'var(--color-accent-primary)' : 'var(--color-bg-tertiary)',
+                color: selectedVolume === 0 ? 'var(--color-bg-primary)' : 'var(--color-text-secondary)'
+              }}
+              onMouseEnter={(e) => {
+                if (selectedVolume !== 0) {
+                  e.currentTarget.style.backgroundColor = 'var(--color-bg-hover)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (selectedVolume !== 0) {
+                  e.currentTarget.style.backgroundColor = 'var(--color-bg-tertiary)';
+                }
+              }}
+              onClick={() => setSelectedVolume(0)}
+            >
+              番外
+            </button>
           </div>
         </div>
 

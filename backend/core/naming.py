@@ -44,6 +44,8 @@ _TYPE_SORT_ORDER = {
     ChapterType.EXTRA: 4,
 }
 
+DRAFT_WORKSPACE_FILENAMES = ("outline.md", "concept.md", "draft.md")
+
 
 @dataclass(frozen=True)
 class ChapterId:
@@ -95,8 +97,6 @@ class ChapterId:
         Example: drafts/vol2/Interlude_vol2_ch1/
         """
         dirname = f"{self.type.value}_vol{self.volume}_ch{self.number}"
-        if self.type == ChapterType.EXTRA:
-            return drafts_root / "extras" / dirname
         return drafts_root / f"vol{self.volume}" / dirname
 
     def sort_key(self) -> tuple[int, int, int]:
@@ -133,6 +133,8 @@ _PATTERNS: list[tuple[re.Pattern, ChapterType, bool]] = [
     (re.compile(r"^Interlude\.(\d{3})\.md$"), ChapterType.INTERLUDE, True),
     (re.compile(r"^Extra\.(\d{3})\.md$"), ChapterType.EXTRA, True),
 ]
+
+_DRAFT_DIR_PATTERN = re.compile(r"^(Prologue|Chapter|Interlude|Finale|Extra)_vol(\d+)_ch(\d+)$")
 
 
 def parse_filename(filename: str, volume: int = 0) -> Optional[ChapterId]:
@@ -196,61 +198,51 @@ def scan_chapters(chapters_root: Path) -> list[ChapterId]:
     return results
 
 
-def scan_drafts(drafts_root: Path) -> list[ChapterId]:
-    """
-    Scan the drafts directory for nested draft folders.
-
-    Draft structure: drafts/vol{V}/{Type}_vol{V}_ch{N}/draft.md
-    Example: drafts/vol2/Interlude_vol2_ch1/draft.md
-
-    Args:
-        drafts_root: The project's drafts/ directory.
-
-    Returns:
-        Sorted list of ChapterId objects.
-    """
+def _scan_draft_dirs(drafts_root: Path, required_files: tuple[str, ...]) -> list[ChapterId]:
     results: list[ChapterId] = []
 
     if not drafts_root.exists():
         return results
 
-    # Pattern: {Type}_vol{V}_ch{N}
-    draft_pattern = re.compile(r"^(Prologue|Chapter|Interlude|Finale|Extra)_vol(\d+)_ch(\d+)$")
-
-    # Scan volume directories
     for vol_dir in sorted(drafts_root.iterdir()):
         if not vol_dir.is_dir():
             continue
 
-        # Parse volume number from directory name
         vol_match = re.match(r"^vol(\d+)$", vol_dir.name)
         if vol_match:
             volume = int(vol_match.group(1))
-            # Scan for nested draft directories
             for draft_dir in vol_dir.iterdir():
                 if not draft_dir.is_dir():
                     continue
-                match = draft_pattern.match(draft_dir.name)
-                if match:
-                    type_str, vol_str, num_str = match.groups()
-                    chapter_type = ChapterType(type_str)
-                    number = int(num_str)
-                    # Verify draft.md exists
-                    if (draft_dir / "draft.md").exists():
-                        results.append(ChapterId(type=chapter_type, volume=volume, number=number))
-
-        # Scan extras directory
-        elif vol_dir.name == "extras":
-            for draft_dir in vol_dir.iterdir():
-                if not draft_dir.is_dir():
+                match = _DRAFT_DIR_PATTERN.match(draft_dir.name)
+                if not match:
                     continue
-                match = draft_pattern.match(draft_dir.name)
-                if match:
-                    type_str, vol_str, num_str = match.groups()
-                    chapter_type = ChapterType(type_str)
-                    number = int(num_str)
-                    if chapter_type == ChapterType.EXTRA and (draft_dir / "draft.md").exists():
-                        results.append(ChapterId(type=chapter_type, volume=0, number=number))
+                type_str, _, num_str = match.groups()
+                chapter_type = ChapterType(type_str)
+                number = int(num_str)
+                if any((draft_dir / filename).exists() for filename in required_files):
+                    results.append(ChapterId(type=chapter_type, volume=volume, number=number))
 
     results.sort(key=lambda c: c.sort_key())
     return results
+
+
+def scan_drafts(drafts_root: Path) -> list[ChapterId]:
+    """
+    Scan the drafts directory for nested draft folders that contain draft.md.
+
+    Draft structure: drafts/vol{V}/{Type}_vol{V}_ch{N}/draft.md
+    Example: drafts/vol2/Interlude_vol2_ch1/draft.md
+    """
+    return _scan_draft_dirs(drafts_root, ("draft.md",))
+
+
+
+def scan_chapter_workspaces(drafts_root: Path) -> list[ChapterId]:
+    """
+    Scan the drafts directory for chapter workspaces.
+
+    A workspace is recognized when the chapter directory exists and contains at
+    least one of outline.md, concept.md, or draft.md.
+    """
+    return _scan_draft_dirs(drafts_root, DRAFT_WORKSPACE_FILENAMES)

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useProjectStore } from '../store/projectStore'
-import { listDrafts, readDraft, saveDraft } from '../api/client'
+import { listDrafts, readDraft, saveDraft, submitDraft } from '../api/client'
 import type { ChapterListItem, ChapterContent } from '../types'
 
 export default function DraftsPage() {
@@ -13,6 +13,7 @@ export default function DraftsPage() {
   } | null>(null)
   
   const [editContent, setEditContent] = useState<string>('')
+  const [submitMessage, setSubmitMessage] = useState<string>('')
 
   const { data: chapters = [] } = useQuery<ChapterListItem[]>({
     queryKey: ['drafts', slug, selectedVolume],
@@ -47,6 +48,35 @@ export default function DraftsPage() {
       alert('保存失败: ' + err)
     }
   })
+
+  const submitMutation = useMutation({
+    mutationFn: () =>
+      submitDraft(slug!, selectedChapter!.type, selectedChapter!.number, selectedChapter!.volume),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['drafts', slug, selectedVolume] })
+      setSubmitMessage(`提交成功！已生成正式章节和 DOCX 文件（${data.word_count.toLocaleString()} 字）。`)
+      setTimeout(() => setSubmitMessage(''), 5000)
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || err?.message || '提交失败'
+      alert(msg)
+    }
+  })
+
+  const handleSubmit = () => {
+    if (!selectedChapter) return
+    const confirmed = confirm(
+      `确认将「${content?.display_name}」提交为正式章节？\n\n` +
+      `提交后：\n` +
+      `- 草稿将保留作为备份\n` +
+      `- 正式章节将存入 chapters/ 目录\n` +
+      `- DOCX 文件将存入 source/ 目录\n\n` +
+      `如章节已存在，将被覆盖。`
+    )
+    if (confirmed) {
+      submitMutation.mutate()
+    }
+  }
 
   if (!slug) {
     return <div style={{ color: 'var(--color-text-secondary)' }}>请先选择一个项目。</div>
@@ -94,6 +124,26 @@ export default function DraftsPage() {
                 卷 {v}
               </button>
             ))}
+            <button
+              className={`px-2 py-1 text-xs rounded transition-all duration-300`}
+              style={{
+                backgroundColor: selectedVolume === 0 ? 'var(--color-accent-primary)' : 'var(--color-bg-tertiary)',
+                color: selectedVolume === 0 ? 'var(--color-bg-primary)' : 'var(--color-text-secondary)'
+              }}
+              onMouseEnter={(e) => {
+                if (selectedVolume !== 0) {
+                  e.currentTarget.style.backgroundColor = 'var(--color-bg-hover)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (selectedVolume !== 0) {
+                  e.currentTarget.style.backgroundColor = 'var(--color-bg-tertiary)';
+                }
+              }}
+              onClick={() => setSelectedVolume(0)}
+            >
+              番外
+            </button>
           </div>
         </div>
 
@@ -162,20 +212,44 @@ export default function DraftsPage() {
             )}
           </div>
           {content && (
-            <button
-              onClick={() => saveMutation.mutate()}
-              disabled={saveMutation.isPending}
-              className="px-4 py-2 rounded text-sm font-medium transition-all duration-300 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
-              style={{
-                backgroundColor: 'var(--color-accent-primary)',
-                color: 'var(--color-bg-primary)',
-                opacity: saveMutation.isPending ? 0.7 : 1
-              }}
-            >
-              {saveMutation.isPending ? '保存中...' : '保存修改'}
-            </button>
+            <div className="flex gap-2 items-center">
+              <button
+                onClick={handleSubmit}
+                disabled={submitMutation.isPending}
+                className="px-4 py-2 rounded text-sm font-medium transition-all duration-300 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
+                style={{
+                  backgroundColor: 'var(--color-success, #22c55e)',
+                  color: 'var(--color-bg-primary)',
+                  opacity: submitMutation.isPending ? 0.7 : 1
+                }}
+              >
+                {submitMutation.isPending ? '提交中...' : '提交到正式章节'}
+              </button>
+              <button
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending}
+                className="px-4 py-2 rounded text-sm font-medium transition-all duration-300 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
+                style={{
+                  backgroundColor: 'var(--color-accent-primary)',
+                  color: 'var(--color-bg-primary)',
+                  opacity: saveMutation.isPending ? 0.7 : 1
+                }}
+              >
+                {saveMutation.isPending ? '保存中...' : '保存修改'}
+              </button>
+            </div>
           )}
         </div>
+
+        {submitMessage && (
+          <div className="px-4 py-2 text-sm font-medium animate-fade-in" style={{
+            backgroundColor: 'var(--color-success-light, #dcfce7)',
+            color: 'var(--color-success, #16a34a)',
+            borderBottom: '1px solid var(--color-border)'
+          }}>
+            {submitMessage}
+          </div>
+        )}
         
         <div className="flex-1 p-4 overflow-auto">
           {contentLoading && <p className="animate-pulse" style={{ color: 'var(--color-text-tertiary)' }}>加载中...</p>}

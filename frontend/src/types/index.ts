@@ -50,6 +50,37 @@ export interface ChapterContent {
   word_count: number
 }
 
+export type ChapterWorkspaceFileKey = 'outline' | 'concept' | 'draft'
+
+export interface ChapterWorkspaceFileItem {
+  key: ChapterWorkspaceFileKey
+  filename: string
+  label: string
+  exists: boolean
+  word_count: number
+}
+
+export interface ChapterWorkspaceListItem {
+  type: ChapterType
+  volume: number
+  number: number
+  display_name: string
+  draft_dir: string
+  files: ChapterWorkspaceFileItem[]
+}
+
+export interface ChapterWorkspaceFileContent {
+  type: ChapterType
+  volume: number
+  number: number
+  display_name: string
+  file_key: ChapterWorkspaceFileKey
+  filename: string
+  content: string
+  exists: boolean
+  word_count: number
+}
+
 export interface LoreEntry {
   id: string
   name: string

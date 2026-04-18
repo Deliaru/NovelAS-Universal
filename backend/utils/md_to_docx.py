@@ -15,7 +15,7 @@ def convert_md_to_docx(
     md_path: str,
     docx_path: Optional[str] = None,
     title: Optional[str] = None,
-    font_name: str = "宋体",
+    font_name: str = "微软雅黑",
     font_size: int = 12,
 ) -> str:
     """
@@ -118,7 +118,7 @@ def convert_md_to_docx(
 
             # Add paragraph with inline formatting
             p = doc.add_paragraph()
-            _add_formatted_text(p, para_text)
+            _add_formatted_text(p, para_text, font_name)
 
             continue  # Skip the i += 1 at the end
 
@@ -130,7 +130,7 @@ def convert_md_to_docx(
     return str(docx_path)
 
 
-def _add_formatted_text(paragraph, text: str):
+def _add_formatted_text(paragraph, text: str, font_name: str = "微软雅黑"):
     """
     Add text to paragraph with inline formatting (bold, italic, etc.).
     """
@@ -145,6 +145,7 @@ def _add_formatted_text(paragraph, text: str):
             # Bold text
             run = paragraph.add_run(part[2:-2])
             run.bold = True
+            run.font.name = font_name
         else:
             # Regular text (may contain italic)
             italic_parts = re.split(r'(\*.*?\*)', part)
@@ -153,9 +154,11 @@ def _add_formatted_text(paragraph, text: str):
                     # Italic text
                     run = paragraph.add_run(ipart[1:-1])
                     run.italic = True
+                    run.font.name = font_name
                 else:
                     # Plain text
-                    paragraph.add_run(ipart)
+                    run = paragraph.add_run(ipart)
+                    run.font.name = font_name
 
 
 def batch_convert_md_to_docx(
