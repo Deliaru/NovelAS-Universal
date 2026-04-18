@@ -7,9 +7,11 @@ import type { ProjectSummary } from '../../types'
 const navItems = [
   { to: '/dashboard', label: '工作台' },
   { to: '/chapters', label: '章节' },
+  { to: '/chapter-outlines', label: '章纲' },
   { to: '/drafts', label: '草稿箱' },
   { to: '/lore', label: '设定库' },
   { to: '/knowledge', label: '大纲库' },
+  { to: '/opsas-plan', label: '运营计划' },
   { to: '/settings', label: '设置' },
 ]
 
@@ -28,7 +30,7 @@ export default function Sidebar() {
       {/* Header */}
       <div className="p-4 flex items-center gap-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
         <h1 className="text-xl font-black tracking-tight drop-shadow-sm transition-transform duration-300 hover:scale-105" style={{ color: 'var(--color-accent-primary)' }}>NovelAS</h1>
-        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider" style={{ 
+        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider" style={{
           backgroundColor: 'var(--color-accent-primary)',
           color: 'var(--color-bg-primary)'
         }}>PRO</span>

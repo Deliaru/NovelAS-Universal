@@ -25,6 +25,8 @@ api_router.include_router(converter_router)
 
 from backend.api.skills import router as skills_router
 from backend.api.ai import router as ai_router
+from backend.api.opsas import router as opsas_router
 
 api_router.include_router(skills_router)
 api_router.include_router(ai_router)
+api_router.include_router(opsas_router)
