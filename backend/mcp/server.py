@@ -369,6 +369,242 @@ def save_chapter_workspace_file(
         sys.stdout.flush()
         return f"Error saving workspace file: {type(e).__name__}: {e}\n\n🔄 You can retry this call."
 
+@mcp.tool()
+@with_tool_timeout(45)
+def query_plot_memory(slug: str, query: str, top_k: int = 5, min_similarity: float = 0.0) -> str:
+    """
+    Semantic search in vector plot memory.
+
+    Timeout: 45 seconds
+    If timeout occurs, retry the same call.
+    """
+    import logging
+    logger = logging.getLogger("novelas")
+
+    try:
+        logger.info(f"Querying plot memory: {slug}, top_k={top_k}, min_similarity={min_similarity}")
+        results = vector_memory.query_memory(slug, query, top_k=top_k, min_similarity=min_similarity)
+        logger.info(f"Plot memory query completed: {len(results)} results")
+        sys.stdout.flush()
+        return json.dumps(results, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"query_plot_memory error: {e}", exc_info=True)
+        sys.stdout.flush()
+        return json.dumps({
+            "error": str(e),
+            "hint": "Retry this call if it failed due to timeout"
+        }, ensure_ascii=False)
+
+
+@mcp.tool()
+@with_tool_timeout(45)
+def store_plot_memory(slug: str, content: str, metadata_json: str = "{}") -> str:
+    """
+    Store a plot memory entry. metadata_json should be a JSON object.
+
+    Timeout: 45 seconds
+    If timeout occurs, retry the same call.
+    """
+    import logging
+    logger = logging.getLogger("novelas")
+
+    try:
+        metadata = json.loads(metadata_json) if metadata_json else {}
+        if not isinstance(metadata, dict):
+            return json.dumps({"error": "metadata_json must be a JSON object"}, ensure_ascii=False)
+
+        logger.info(f"Storing plot memory: {slug}, metadata={metadata}")
+        memory_id = vector_memory.store_memory(slug, content, metadata)
+        logger.info(f"Plot memory stored: {memory_id}")
+        sys.stdout.flush()
+        return json.dumps({"memory_id": memory_id}, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"store_plot_memory error: {e}", exc_info=True)
+        sys.stdout.flush()
+        return json.dumps({
+            "error": str(e),
+            "hint": "Retry this call if it failed due to timeout"
+        }, ensure_ascii=False)
+
+
+@mcp.tool()
+@with_tool_timeout(10)
+def update_knowledge_file(path: str, content: str, slug: str = "") -> str:
+    """
+    Create or update a shared or project knowledge file.
+
+    Timeout: 10 seconds
+    If timeout occurs, retry the same call.
+    """
+    import logging
+    logger = logging.getLogger("novelas")
+
+    try:
+        project_slug = slug if slug else None
+        logger.info(f"Updating knowledge file: path={path}, slug={project_slug}")
+        saved_path = knowledge_manager.update_knowledge_file(path, content, project_slug)
+        logger.info(f"Knowledge file updated: {saved_path}")
+        sys.stdout.flush()
+        return json.dumps({"path": saved_path}, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"update_knowledge_file error: {e}", exc_info=True)
+        sys.stdout.flush()
+        return json.dumps({
+            "error": str(e),
+            "hint": "Retry this call if it failed due to timeout"
+        }, ensure_ascii=False)
+
+
+@mcp.tool()
+@with_tool_timeout(30)
+def convert_markdown_to_docx(
+    md_path: str,
+    docx_path: str = "",
+    title: str = "",
+    font_name: str = "",
+    font_size: int = 12,
+) -> str:
+    """
+    Convert a Markdown file to DOCX.
+
+    Timeout: 30 seconds
+    If timeout occurs, retry the same call.
+    """
+    import logging
+    logger = logging.getLogger("novelas")
+
+    try:
+        kwargs = {"font_size": font_size}
+        if docx_path:
+            kwargs["docx_path"] = docx_path
+        if title:
+            kwargs["title"] = title
+        if font_name:
+            kwargs["font_name"] = font_name
+
+        logger.info(f"Converting markdown to docx: {md_path}")
+        output_path = convert_md_to_docx(md_path, **kwargs)
+        logger.info(f"DOCX created: {output_path}")
+        sys.stdout.flush()
+        return json.dumps({"path": output_path}, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"convert_markdown_to_docx error: {e}", exc_info=True)
+        sys.stdout.flush()
+        return json.dumps({
+            "error": str(e),
+            "hint": "Retry this call if it failed due to timeout"
+        }, ensure_ascii=False)
+
+
+@mcp.tool()
+@with_tool_timeout(60)
+def batch_convert_markdown_to_docx(
+    input_dir: str,
+    output_dir: str = "",
+    pattern: str = "*.md",
+    font_name: str = "",
+    font_size: int = 12,
+) -> str:
+    """
+    Batch convert Markdown files in a directory to DOCX.
+
+    Timeout: 60 seconds
+    If timeout occurs, retry the same call.
+    """
+    import logging
+    logger = logging.getLogger("novelas")
+
+    try:
+        kwargs = {"pattern": pattern, "font_size": font_size}
+        if output_dir:
+            kwargs["output_dir"] = output_dir
+        if font_name:
+            kwargs["font_name"] = font_name
+
+        logger.info(f"Batch converting markdown to docx: {input_dir}, pattern={pattern}")
+        output_paths = batch_convert_md_to_docx(input_dir, **kwargs)
+        logger.info(f"Batch DOCX conversion completed: {len(output_paths)} files")
+        sys.stdout.flush()
+        return json.dumps({"paths": output_paths}, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"batch_convert_markdown_to_docx error: {e}", exc_info=True)
+        sys.stdout.flush()
+        return json.dumps({
+            "error": str(e),
+            "hint": "Retry this call if it failed due to timeout"
+        }, ensure_ascii=False)
+
+
+@mcp.tool()
+@with_tool_timeout(15)
+def calculate_chapter_batches(
+    slug: str,
+    volume: int,
+    max_chars: int = 50000,
+    start_chapter: int = 0,
+    end_chapter: int = 0,
+) -> str:
+    """
+    Split volume chapters into processing batches.
+
+    Timeout: 15 seconds
+    If timeout occurs, retry the same call.
+    """
+    import logging
+    logger = logging.getLogger("novelas")
+
+    try:
+        start = start_chapter if start_chapter > 0 else None
+        end = end_chapter if end_chapter > 0 else None
+        logger.info(
+            f"Calculating chapter batches: slug={slug}, volume={volume}, "
+            f"max_chars={max_chars}, start={start}, end={end}"
+        )
+        result = job_manager.calculate_batches(
+            slug,
+            volume,
+            max_chars=max_chars,
+            start_chapter=start,
+            end_chapter=end,
+        )
+        logger.info(f"Chapter batches calculated: {result.total_batches} batches")
+        sys.stdout.flush()
+        return json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"calculate_chapter_batches error: {e}", exc_info=True)
+        sys.stdout.flush()
+        return json.dumps({
+            "error": str(e),
+            "hint": "Retry this call if it failed due to timeout"
+        }, ensure_ascii=False)
+
+
+@mcp.tool()
+@with_tool_timeout(10)
+def claim_next_batch(job_id: str) -> str:
+    """
+    Claim the next unprocessed batch for a batch job.
+
+    Timeout: 10 seconds
+    If timeout occurs, retry the same call.
+    """
+    import logging
+    logger = logging.getLogger("novelas")
+
+    try:
+        logger.info(f"Claiming next batch: {job_id}")
+        result = job_manager.claim_next_batch(job_id)
+        logger.info(f"Batch claim result: {result.status}")
+        sys.stdout.flush()
+        return json.dumps(result.model_dump(), ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"claim_next_batch error: {e}", exc_info=True)
+        sys.stdout.flush()
+        return json.dumps({
+            "error": str(e),
+            "hint": "Retry this call if it failed due to timeout"
+        }, ensure_ascii=False)
+
 
 if __name__ == "__main__":
     # Configure logging for MCP stdio mode (disable console to avoid polluting stdout)

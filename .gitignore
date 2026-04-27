@@ -21,6 +21,7 @@ projects/
 data/
 shared/
 
+
 # Logs
 *.log
 
@@ -53,3 +54,8 @@ tools/
 
 # Docs
 docs/
+exports/
+
+*.html
+OpsasPlan/
+OpsasPlan/song-release/2026-04-18_yakusoku.md

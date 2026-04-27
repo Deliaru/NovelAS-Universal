@@ -48,7 +48,7 @@ if not exist "%ROOT%\frontend\node_modules" (
 echo [5/5] Starting services...
 start "NovelAS Backend" cmd /k "cd /d ""%ROOT%"" && python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
 start "NovelAS Frontend" cmd /k "cd /d ""%ROOT%\frontend"" && npm run dev"
-start "NovelAS Opencode" cmd /k "opencode -c"
+
 
 timeout /t 2 >nul
 start "" "http://localhost:5173"
