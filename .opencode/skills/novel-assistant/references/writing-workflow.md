@@ -100,8 +100,9 @@
 
 1. **加载章纲**：读取 `project_guides/chapter_outline_vol{V}_ch{N}.md`
 2. **加载文风范本**：`read_chapter_content(volume=1, chapter=style_ref_number, chapter_type=style_ref_type)`
-3. **设定预检**：浏览章纲，提取所有即将登场的人物和提及的物品/地点，逐一调用 `search_lore(keyword=...)`
-4. 确认主角当前装备、心理状态、人际关系
+3. **SRNR 文风校准**：若 `slug == "SRNR"`，读取 `references/srnr-style-calibration.md`；它必须在 `Extra.000` 之后生效，优先约束语言温度、对话长短、动作承载与反机械模仿。
+4. **设定预检**：浏览章纲，提取所有即将登场的人物和提及的物品/地点，逐一调用 `search_lore(keyword=...)`
+5. 确认主角当前装备、心理状态、人际关系
 
 ### 写作规范
 
@@ -115,7 +116,7 @@
 
 ### 执行步骤
 
-1. **文风校准**：阅读文风范本，进入压抑而唯美的语境
+1. **文风校准**：阅读文风范本；若为 SRNR，同时应用 SRNR 文风校准，避免冷淡的物象开场和机械短句对话
 2. **逐场景撰写**：根据章纲切片逐一写作
 3. **Interactive Review**：
    - 分场景展示，每段前附设定自查报告："*本段涉及设定：[列出]... 已核对无误。*"
@@ -142,8 +143,9 @@
 ### Phase 1: 文风锚定
 
 1. 加载文风范本：`read_chapter_content(volume=1, chapter=style_ref_number, chapter_type=style_ref_type)`
-2. 提取特征：中短段落（1-3行）、强画面感、细腻心理独白、留白艺术
-3. 日轻特质：
+2. 若 `slug == "SRNR"`，加载 `references/srnr-style-calibration.md`，优先检查“冷淡描写”“连续短句”“机械语气词/吐槽/补刀”。
+3. 提取特征：中短段落（1-3行）、强画面感、细腻心理独白、留白艺术
+4. 日轻特质：
    - 拒绝"网文味"词汇（恐怖如斯、杀伐果断、强者为尊、锐利如刀）
    - 拒绝"网文味"句式（如一段对话之后，接一个人的状态/动作怎么怎么样），连续多段这样（如：
       "但不要告诉他们关于A和B的事情。"
